@@ -130,7 +130,7 @@ export function LockScreen() {
         </View>
 
         <Text className={`text-xl ${typeface.semibold} mb-1.5`} style={{ color: palette.text }}>
-          Remember
+          Smaran
         </Text>
         <Text
           className={`text-sm ${typeface.regular} mb-10 text-center`}

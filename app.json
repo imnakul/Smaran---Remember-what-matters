@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Remember",
+    "name": "Smaran: Remember what matters",
     "slug": "Remember",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "scheme": "remember-app",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,14 +12,14 @@
     },
     "android": {
       "package": "com.remember.app",
+      "versionCode": 2,
       "adaptiveIcon": {
-        "backgroundColor": "#7A967A",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "edgeToEdgeEnabled": true
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +33,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#FDFDF9"
+          "backgroundColor": "#000000"
         }
       ],
       "@react-native-community/datetimepicker",

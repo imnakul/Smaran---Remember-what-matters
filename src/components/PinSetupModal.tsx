@@ -78,7 +78,7 @@ export function PinSetupModal({ visible, mode, onClose }: PinSetupModalProps) {
       if (!available) {
         Alert.alert(
           'Secure storage unavailable',
-          'This device will not let Remember store a PIN safely, so the lock cannot be enabled.'
+          'This device will not let Smaran store a PIN safely, so the lock cannot be enabled.'
         );
         onClose();
         return;

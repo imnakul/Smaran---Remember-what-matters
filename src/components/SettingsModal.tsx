@@ -374,7 +374,7 @@ export function SettingsModal({
       if (!granted) {
         Alert.alert(
           'Notifications disabled',
-          'Enable notification permission for Remember in system settings to get a daily reminder.'
+          'Enable notification permission for Smaran in system settings to get a daily reminder.'
         );
         return;
       }

@@ -36,7 +36,7 @@ export async function exportBackup(thoughts: Thought[]): Promise<boolean> {
 
   await Sharing.shareAsync(file.uri, {
     mimeType: 'application/json',
-    dialogTitle: 'Export Remember backup',
+    dialogTitle: 'Export Smaran backup',
   });
   return true;
 }
@@ -51,7 +51,7 @@ export async function importBackup(): Promise<Thought[] | null> {
   const parsed: unknown = JSON.parse(text);
 
   if (!isThoughtArray(parsed)) {
-    throw new Error('This file does not look like a valid Remember backup.');
+    throw new Error('This file does not look like a valid Smaran backup.');
   }
 
   return parsed;
