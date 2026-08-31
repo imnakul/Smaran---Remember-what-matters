@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { View, LayoutChangeEvent } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { hslToHex } from '../lib/color';
 
 const HUE_STOPS = [0, 60, 120, 180, 240, 300, 360].map(h => hslToHex(h, 1, 0.5));
@@ -14,29 +15,75 @@ interface HueSliderProps {
   onChange: (hue: number) => void;
 }
 
-export function HueSlider({ hue, onChange }: HueSliderProps) {
-  const [width, setWidth] = useState(0);
-  const thumbX = useSharedValue((hue / 360) * width);
+export function HueSlider({ hue, onChange }: HueSliderProps): React.JSX.Element {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const trackWidthVal = useSharedValue(0);
+  const isDragging = useSharedValue(false);
+  const thumbX = useSharedValue(0);
 
-  const handleLayout = (e: LayoutChangeEvent) => {
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+
+  const lastReportedHue = useRef(hue);
+  useEffect(() => {
+    lastReportedHue.current = hue;
+  }, [hue]);
+
+  useEffect(() => {
+    if (!isDragging.value && trackWidth > 0) {
+      thumbX.value = (Math.max(0, Math.min(360, hue)) / 360) * trackWidth;
+    }
+  }, [hue, trackWidth, isDragging, thumbX]);
+
+  const handleLayout = (e: LayoutChangeEvent): void => {
     const w = e.nativeEvent.layout.width;
-    setWidth(w);
-    thumbX.value = (hue / 360) * w;
+    if (w > 0) {
+      setTrackWidth(w);
+      trackWidthVal.value = w;
+      thumbX.value = (Math.max(0, Math.min(360, hue)) / 360) * w;
+    }
   };
 
-  const updateFromX = (x: number) => {
-    if (width <= 0) return;
-    const clamped = Math.max(0, Math.min(width, x));
+  const notifyChange = useCallback((newHue: number): void => {
+    const rounded = Math.round(newHue);
+    if (rounded !== lastReportedHue.current) {
+      lastReportedHue.current = rounded;
+      Haptics.selectionAsync().catch(() => {});
+      onChangeRef.current(rounded);
+    }
+  }, []);
+
+  const updateFromPosition = (touchX: number): void => {
+    'worklet';
+    if (trackWidthVal.value <= 0) return;
+    const clamped = Math.max(0, Math.min(trackWidthVal.value, touchX));
     thumbX.value = clamped;
-    onChange((clamped / width) * 360);
+    const computedHue = (clamped / trackWidthVal.value) * 360;
+    runOnJS(notifyChange)(computedHue);
   };
 
   const gesture = Gesture.Pan()
-    .onStart(e => runOnJS(updateFromX)(e.x))
-    .onUpdate(e => runOnJS(updateFromX)(e.x));
+    .minDistance(0)
+    .activeOffsetX([-4, 4])
+    .failOffsetY([-14, 14])
+    .onBegin(e => {
+      isDragging.value = true;
+      updateFromPosition(e.x);
+    })
+    .onUpdate(e => {
+      updateFromPosition(e.x);
+    })
+    .onFinalize(() => {
+      isDragging.value = false;
+    });
 
   const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: thumbX.value - THUMB_SIZE / 2 }],
+    transform: [
+      { translateX: thumbX.value - THUMB_SIZE / 2 },
+      { scale: isDragging.value ? 1.15 : 1 },
+    ],
   }));
 
   return (

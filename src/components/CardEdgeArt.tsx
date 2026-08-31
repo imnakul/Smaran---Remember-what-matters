@@ -114,7 +114,7 @@ export function CardEdgeArt({ border, radius, accent }: CardEdgeArtProps): React
                 y={STROKE / 2}
                 width={Math.max(0, size.width - STROKE)}
                 height={Math.max(0, size.height - STROKE)}
-                rx={Math.max(0, radius - STROKE / 2)}
+                rx={Number.isFinite(radius) ? Math.max(0, radius - STROKE / 2) : 0}
                 stroke="url(#cardSpectrum)"
                 strokeWidth={STROKE}
                 fill="none"

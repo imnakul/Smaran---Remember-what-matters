@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { View, Text, LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -37,7 +37,7 @@ export function SliderControl({
   description,
   leftLabel,
   rightLabel,
-}: SliderControlProps) {
+}: SliderControlProps): React.JSX.Element {
   const typeface = useTypeface();
   const { settings } = useSettings();
   const palette = settings.darkMode ? NEUTRAL.dark : NEUTRAL.light;
@@ -45,46 +45,61 @@ export function SliderControl({
 
   const trackWidth = useSharedValue(0);
   const isDragging = useSharedValue(false);
-  const previousReportedValue = useRef(value);
 
   // Normalize initial value between 0 and 1
   const clampedVal = Math.min(max, Math.max(min, value));
   const progressRatio = (clampedVal - min) / (max - min || 1);
   const sliderProgress = useSharedValue(progressRatio);
 
-  React.useEffect(() => {
-    const freshRatio = (Math.min(max, Math.max(min, value)) - min) / (max - min || 1);
-    sliderProgress.value = freshRatio;
-  }, [value, min, max, sliderProgress]);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
 
-  const updateFromPosition = (touchX: number) => {
+  const previousReportedValue = useRef(value);
+  useEffect(() => {
+    previousReportedValue.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    if (!isDragging.value) {
+      const freshClamped = Math.min(max, Math.max(min, value));
+      const freshRatio = (freshClamped - min) / (max - min || 1);
+      sliderProgress.value = freshRatio;
+    }
+  }, [value, min, max, isDragging, sliderProgress]);
+
+  const notifyChange = useCallback((newVal: number): void => {
+    const rounded = Number(newVal.toFixed(2));
+    if (rounded !== previousReportedValue.current) {
+      previousReportedValue.current = rounded;
+      Haptics.selectionAsync().catch(() => {});
+      onChangeRef.current(rounded);
+    }
+  }, []);
+
+  const updateFromPosition = (touchX: number): void => {
     'worklet';
-    if (trackWidth.value <= 0) return;
-    const rawRatio = Math.max(0, Math.min(1, touchX / trackWidth.value));
+    const usableWidth = trackWidth.value - 24;
+    if (usableWidth <= 0) return;
+    const clampedX = Math.max(0, Math.min(usableWidth, touchX - 12));
+    const rawRatio = clampedX / usableWidth;
     const rawValue = min + rawRatio * (max - min);
-    
+
     // Snap to step
     const stepsCount = Math.round((rawValue - min) / step);
     const steppedValue = Math.min(max, Math.max(min, min + stepsCount * step));
     const steppedRatio = (steppedValue - min) / (max - min || 1);
-    
+
     sliderProgress.value = steppedRatio;
 
     runOnJS(notifyChange)(steppedValue);
   };
 
-  const notifyChange = (newVal: number) => {
-    const rounded = Number(newVal.toFixed(2));
-    if (rounded !== previousReportedValue.current) {
-      previousReportedValue.current = rounded;
-      Haptics.selectionAsync();
-      onChange(rounded);
-    }
-  };
-
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-5, 5])
-    .failOffsetY([-15, 15])
+    .minDistance(0)
+    .activeOffsetX([-4, 4])
+    .failOffsetY([-14, 14])
     .onBegin((e) => {
       isDragging.value = true;
       updateFromPosition(e.x);
@@ -96,23 +111,16 @@ export function SliderControl({
       isDragging.value = false;
     });
 
-  const tapGesture = Gesture.Tap()
-    .maxDuration(250)
-    .onEnd((e) => {
-      updateFromPosition(e.x);
-    });
-
-  const gesture = Gesture.Race(panGesture, tapGesture);
-
   const fillStyle = useAnimatedStyle(() => ({
     width: `${Math.max(0, Math.min(100, sliderProgress.value * 100))}%`,
   }));
 
   const thumbStyle = useAnimatedStyle(() => {
-    const offset = sliderProgress.value * trackWidth.value;
+    const usableWidth = Math.max(0, trackWidth.value - 24);
+    const offset = sliderProgress.value * usableWidth;
     return {
       transform: [
-        { translateX: Math.max(0, Math.min(trackWidth.value, offset)) - 12 },
+        { translateX: Math.max(0, Math.min(usableWidth, offset)) },
         { scale: isDragging.value ? 1.15 : 1 },
       ],
     };
@@ -120,24 +128,16 @@ export function SliderControl({
 
   const displayString = valueDisplay ? valueDisplay(value) : value.toString();
 
-  const handleLayout = (e: LayoutChangeEvent) => {
-    trackWidth.value = e.nativeEvent.layout.width;
-  };
-
-  const handleTouch = (locationX: number) => {
-    if (trackWidth.value <= 0) return;
-    const rawRatio = Math.max(0, Math.min(1, locationX / trackWidth.value));
-    const rawValue = min + rawRatio * (max - min);
-    const stepsCount = Math.round((rawValue - min) / step);
-    const steppedValue = Math.min(max, Math.max(min, min + stepsCount * step));
-    const steppedRatio = (steppedValue - min) / (max - min || 1);
-    sliderProgress.value = steppedRatio;
-    notifyChange(steppedValue);
+  const handleLayout = (e: LayoutChangeEvent): void => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) {
+      trackWidth.value = w;
+    }
   };
 
   return (
     <View className="mb-4">
-      <View className="flex-row items-center justify-between mb-1.5">
+      <View className="flex-row items-center justify-between mb-1.5 px-0.5">
         <Text className={`text-sm ${typeface.semibold}`} style={{ color: palette.text }}>
           {label}
         </Text>
@@ -157,29 +157,14 @@ export function SliderControl({
       </View>
 
       {description && (
-        <Text className={`text-xs ${typeface.regular} mb-2.5`} style={{ color: palette.textMuted }}>
+        <Text className={`text-xs ${typeface.regular} mb-2.5 px-0.5`} style={{ color: palette.textMuted }}>
           {description}
         </Text>
       )}
 
-      <GestureDetector gesture={gesture}>
+      <GestureDetector gesture={panGesture}>
         <View
           onLayout={handleLayout}
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => true}
-          onResponderGrant={(e) => {
-            isDragging.value = true;
-            handleTouch(e.nativeEvent.locationX);
-          }}
-          onResponderMove={(e) => {
-            handleTouch(e.nativeEvent.locationX);
-          }}
-          onResponderRelease={() => {
-            isDragging.value = false;
-          }}
-          onResponderTerminate={() => {
-            isDragging.value = false;
-          }}
           className="h-10 justify-center relative py-2"
           accessibilityRole="adjustable"
           aria-label={label}
@@ -189,7 +174,7 @@ export function SliderControl({
         >
           {/* Base Track */}
           <View
-            className="h-2 rounded-full overflow-hidden"
+            className="h-2 rounded-full overflow-hidden mx-3"
             style={{
               backgroundColor: settings.darkMode
                 ? 'rgba(255, 255, 255, 0.12)'
@@ -211,7 +196,7 @@ export function SliderControl({
           {/* Thumb Knob */}
           <Animated.View
             pointerEvents="none"
-            className="absolute w-6 h-6 rounded-full items-center justify-center shadow-md"
+            className="absolute left-0 w-6 h-6 rounded-full items-center justify-center shadow-md"
             style={[
               {
                 backgroundColor: '#FFFFFF',
@@ -235,7 +220,7 @@ export function SliderControl({
       </GestureDetector>
 
       {(leftLabel || rightLabel) && (
-        <View className="flex-row items-center justify-between -mt-1">
+        <View className="flex-row items-center justify-between px-1 -mt-0.5">
           <Text className={`text-[11px] ${typeface.regular}`} style={{ color: palette.textMuted }}>
             {leftLabel ?? ''}
           </Text>

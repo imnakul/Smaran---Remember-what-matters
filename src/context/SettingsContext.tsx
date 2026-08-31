@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../types';
 import * as settingsStorage from '../lib/settingsStorage';
 import { scheduleDailyReminder } from '../lib/reminders';
@@ -19,10 +19,13 @@ const SettingsContext = createContext<SettingsContextValue | undefined>(undefine
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [isLoaded, setIsLoaded] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestSettingsRef = useRef<AppSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
     settingsStorage.loadSettings().then(loaded => {
       setSettings(loaded);
+      latestSettingsRef.current = loaded;
       setIsLoaded(true);
       // Re-arm the OS-level schedule on app open (survives most reboots, but not all).
       if (loaded.reminderEnabled) {
@@ -31,10 +34,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        settingsStorage.saveSettings(latestSettingsRef.current).catch(() => {});
+      }
+    };
+  }, []);
+
   const updateSettings = useCallback((partial: Partial<AppSettings>) => {
     setSettings(prev => {
       const next = { ...prev, ...partial };
-      settingsStorage.saveSettings(next);
+      latestSettingsRef.current = next;
+
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        settingsStorage.saveSettings(next).catch(() => {});
+      }, 200);
+
       return next;
     });
   }, []);

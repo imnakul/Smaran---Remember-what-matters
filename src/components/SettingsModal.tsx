@@ -52,6 +52,8 @@ import {
   Quote,
   Zap,
   Type,
+  Compass,
+  CircleDot,
 } from 'lucide-react-native';
 import {
   CardLook,
@@ -73,6 +75,7 @@ import {
   FontFamilyId,
   CardBorder,
   AppSettings,
+  NavigationStyle,
 } from '../types';
 import { NEUTRAL, APP_ACCENT_PALETTES } from '../constants/theme';
 import { APPEARANCE_LIST, AppearanceTokens, APPEARANCES } from '../constants/appearance';
@@ -85,14 +88,16 @@ import { useSwipeToDismiss } from '../hooks/useSwipeToDismiss';
 import { scheduleDailyReminder, cancelDailyReminder } from '../lib/reminders';
 import { exportBackup, importBackup } from '../lib/backup';
 import { pickWallpaper, clearWallpaper } from '../lib/wallpaper';
+import { hslToHex, hexToHue } from '../lib/color';
 import { PinSetupMode } from './PinSetupModal';
 import { useTypeface } from '../hooks/useTypeface';
 import { useSync } from '../context/SyncContext';
 import { SliderControl } from './SliderControl';
+import { HueSlider } from './HueSlider';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-type SettingsTab = 'general' | 'appearance' | 'sync' | 'data';
+type SettingsTab = 'general' | 'appearance' | 'navigation' | 'sync' | 'data';
 
 interface SettingsModalProps {
   visible: boolean;
@@ -109,6 +114,7 @@ interface SettingsModalProps {
 const SETTINGS_TABS: { id: SettingsTab; label: string; icon: typeof SlidersHorizontal }[] = [
   { id: 'general', label: 'General', icon: SlidersHorizontal },
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'navigation', label: 'Navigation', icon: Compass },
   { id: 'sync', label: 'Sync', icon: Cloud },
   { id: 'data', label: 'Data', icon: Database },
 ];
@@ -167,6 +173,43 @@ const LOCK_TIMEOUT_OPTIONS: { id: LockTimeout; label: string }[] = [
   { id: '1min', label: 'After 1 min' },
   { id: '5min', label: 'After 5 min' },
   { id: '15min', label: 'After 15 min' },
+];
+
+const NAVIGATION_STYLE_OPTIONS: {
+  id: NavigationStyle;
+  title: string;
+  badge: string;
+  description: string;
+  bullets: string[];
+}[] = [
+  {
+    id: 'carousel',
+    title: 'Carousel Arc',
+    badge: 'Rotating Dial',
+    description: 'Physical rotating carousel arc with a fixed center selector ring and circular distance scaling.',
+    bullets: ['Center selector ring', 'Curved orbiting arc motion', 'Swipe anywhere to rotate tabs'],
+  },
+  {
+    id: 'orbit',
+    title: 'Orbital Moving Ring',
+    badge: 'Moving Ring',
+    description: 'Fixed 5-icon layout where the selector ring glides across the bar directly to the active tab.',
+    bullets: ['Fixed horizontal icon layout', 'Ring glides directly to active tab', 'Horizontal drag tracks & snaps'],
+  },
+  {
+    id: 'slider',
+    title: 'Smooth Slider',
+    badge: 'Docked Pill',
+    description: 'Classic docked bottom bar with an animated sliding background pill behind the active tab.',
+    bullets: ['Docked bottom layout', 'Sliding pill highlight indicator', 'Smooth swipe and tap transitions'],
+  },
+  {
+    id: 'floating',
+    title: 'Floating Capsule',
+    badge: 'Frosted Glass',
+    description: 'Elevated floating frosted glass capsule bar suspended above the bottom screen edge.',
+    bullets: ['Floating frosted capsule', 'Active glowing highlight pill', 'Soft elevation shadow with blur'],
+  },
 ];
 
 const SWATCH_ACCENT = '#7A967A';
@@ -276,7 +319,7 @@ export function SettingsModal({
     const dir = nextIdx > prevIdx ? 1 : -1;
     setTabDirection(dir);
     setActiveTab(newTab);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     contentSlideX.value = dir * 25;
     contentOpacity.value = 0.4;
@@ -385,9 +428,10 @@ export function SettingsModal({
   };
 
   const openTimePicker = () => {
-    const [hour, minute] = settings.reminderTime.split(':').map(Number);
+    const timeStr = settings.reminderTime || '20:00';
+    const [hour, minute] = timeStr.split(':').map(Number);
     const initial = new Date();
-    initial.setHours(hour, minute, 0, 0);
+    initial.setHours(isNaN(hour) ? 20 : hour, isNaN(minute) ? 0 : minute, 0, 0);
 
     DateTimePickerAndroid.open({
       value: initial,
@@ -401,7 +445,7 @@ export function SettingsModal({
           .padStart(2, '0')}`;
         updateSettings({ reminderTime: time });
         if (settings.reminderEnabled) {
-          scheduleDailyReminder(time);
+          scheduleDailyReminder(time).catch(() => {});
         }
       },
     });
@@ -410,8 +454,8 @@ export function SettingsModal({
   // Reorder tabs helpers
   const currentTabOrder: CollectionId[] =
     settings.collectionOrder && settings.collectionOrder.length === COLLECTIONS.length
-      ? settings.collectionOrder
-      : ['remember', 'learnings', 'blessings', 'sayings', 'tryDoing'];
+         ? settings.collectionOrder
+         : ['remember', 'learnings', 'blessings', 'sayings', 'tryDoing'];
 
   const moveTab = (index: number, direction: -1 | 1) => {
     const newOrder = [...currentTabOrder];
@@ -420,12 +464,12 @@ export function SettingsModal({
     const temp = newOrder[index];
     newOrder[index] = newOrder[targetIndex];
     newOrder[targetIndex] = temp;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     updateSettings({ collectionOrder: newOrder });
   };
 
   const resetTabOrder = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     updateSettings({ collectionOrder: ['remember', 'learnings', 'blessings', 'sayings', 'tryDoing'] });
   };
 
@@ -436,7 +480,7 @@ export function SettingsModal({
     : {};
 
   const updateSelectedScopeTheme = (patch: Partial<CollectionThemeConfig>) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (!isCustomizingSpecificCollection) {
       // Global updates
       updateSettings(patch as Partial<AppSettings>);
@@ -456,7 +500,7 @@ export function SettingsModal({
 
   const resetSelectedScopeTheme = () => {
     if (!isCustomizingSpecificCollection) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const existing = { ...(settings.collectionThemes ?? {}) };
     delete existing[selectedCollectionScope as CollectionId];
     updateSettings({ collectionThemes: existing });
@@ -518,6 +562,18 @@ export function SettingsModal({
     (isCustomizingSpecificCollection
       ? currentCollectionTheme.generalThemeColor ?? settings.generalThemeColor
       : settings.generalThemeColor) ?? '#7A967A';
+
+  const isCustomAccent = !APP_ACCENT_PALETTES.some(
+    (pal) => pal.color.toLowerCase() === activeGeneralThemeColor.toLowerCase()
+  );
+  const [showCustomAccent, setShowCustomAccent] = useState(isCustomAccent);
+  const [customAccentHue, setCustomAccentHue] = useState<number>(() => hexToHue(activeGeneralThemeColor));
+
+  useEffect(() => {
+    if (isCustomAccent) {
+      setCustomAccentHue(hexToHue(activeGeneralThemeColor));
+    }
+  }, [activeGeneralThemeColor, isCustomAccent]);
 
   if (!visible) return null;
 
@@ -978,11 +1034,14 @@ export function SettingsModal({
                         {/* Palette Swatches */}
                         <View className="flex-row flex-wrap gap-2.5">
                           {APP_ACCENT_PALETTES.map((pal) => {
-                            const isChosen = activeGeneralThemeColor.toLowerCase() === pal.color.toLowerCase();
+                            const isChosen = !isCustomAccent && activeGeneralThemeColor.toLowerCase() === pal.color.toLowerCase();
                             return (
                               <Pressable
                                 key={pal.id}
-                                onPress={() => updateSelectedScopeTheme({ generalThemeColor: pal.color })}
+                                onPress={() => {
+                                  setShowCustomAccent(false);
+                                  updateSelectedScopeTheme({ generalThemeColor: pal.color });
+                                }}
                                 aria-label={`Select ${pal.label} accent color`}
                                 role="button"
                                 className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl border"
@@ -1010,7 +1069,82 @@ export function SettingsModal({
                               </Pressable>
                             );
                           })}
+
+                          {/* Custom Color Selector Button */}
+                          <Pressable
+                            onPress={() => {
+                              setShowCustomAccent(true);
+                              if (!isCustomAccent) {
+                                const currentHue = hexToHue(activeGeneralThemeColor);
+                                setCustomAccentHue(currentHue);
+                                const newHex = hslToHex(currentHue, 0.55, 0.48);
+                                updateSelectedScopeTheme({ generalThemeColor: newHex });
+                              }
+                            }}
+                            aria-label="Custom accent color selector"
+                            role="button"
+                            className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl border"
+                            style={{
+                              backgroundColor: isCustomAccent
+                                ? settings.darkMode
+                                  ? 'rgba(255,255,255,0.12)'
+                                  : 'rgba(0,0,0,0.06)'
+                                : 'transparent',
+                              borderColor: isCustomAccent ? activeGeneralThemeColor : palette.border,
+                            }}
+                          >
+                            <View
+                              className="w-4 h-4 rounded-full items-center justify-center border border-black/10"
+                              style={{ backgroundColor: isCustomAccent ? activeGeneralThemeColor : palette.surface }}
+                            >
+                              {isCustomAccent ? (
+                                <Check size={10} color="#FFFFFF" strokeWidth={3} />
+                              ) : (
+                                <Palette size={10} color={palette.textMuted} />
+                              )}
+                            </View>
+                            <Text
+                              className={`text-xs ${isCustomAccent ? typeface.semibold : typeface.medium}`}
+                              style={{ color: isCustomAccent ? palette.text : palette.textMuted }}
+                            >
+                              Custom
+                            </Text>
+                          </Pressable>
                         </View>
+
+                        {/* Interactive Custom Hue Slider */}
+                        {(showCustomAccent || isCustomAccent) && (
+                          <View
+                            className="mt-3 p-3.5 rounded-xl border gap-2.5"
+                            style={{
+                              backgroundColor: palette.pillMuted,
+                              borderColor: palette.border,
+                            }}
+                          >
+                            <View className="flex-row items-center justify-between px-0.5">
+                              <Text className={`text-xs ${typeface.medium}`} style={{ color: palette.textMuted }}>
+                                Custom Color (Hue)
+                              </Text>
+                              <View className="flex-row items-center gap-1.5">
+                                <View
+                                  className="w-3.5 h-3.5 rounded-full border border-black/15"
+                                  style={{ backgroundColor: activeGeneralThemeColor }}
+                                />
+                                <Text className={`text-xs ${typeface.semibold}`} style={{ color: palette.text }}>
+                                  {activeGeneralThemeColor.toUpperCase()}
+                                </Text>
+                              </View>
+                            </View>
+                            <HueSlider
+                              hue={customAccentHue}
+                              onChange={(h) => {
+                                setCustomAccentHue(h);
+                                const hex = hslToHex(h, 0.55, 0.48);
+                                updateSelectedScopeTheme({ generalThemeColor: hex });
+                              }}
+                            />
+                          </View>
+                        )}
                       </View>
                     </View>
                   )}
@@ -1168,7 +1302,7 @@ export function SettingsModal({
                       valueDisplay={(v) => `${v.toFixed(1)}x`}
                       leftLabel="Tight (0.5x)"
                       rightLabel="Wide (2.0x)"
-                      description="Adjust distance between thought cards in the daily list."
+                      description="Adjust distance and spacing between thought cards across all collection lists."
                       accentColor={activeGeneralThemeColor}
                       onChange={(val) => updateSelectedScopeTheme({ customCardDensity: val })}
                     />
@@ -1365,7 +1499,111 @@ export function SettingsModal({
               )}
 
               {/* ========================================================================= */}
-              {/* TAB 3: SYNC */}
+              {/* TAB 3: NAVIGATION */}
+              {/* ========================================================================= */}
+              {activeTab === 'navigation' && (
+                <View className="gap-5">
+                  <View>
+                    <Text className={`text-base ${typeface.semibold}`} style={{ color: palette.text }}>
+                      Bottom Navigation Style
+                    </Text>
+                    <Text className={`text-xs ${typeface.regular} mt-1`} style={{ color: palette.textMuted }}>
+                      Choose your favorite navigation layout and interaction mechanics.
+                    </Text>
+                  </View>
+
+                  <View className="gap-3">
+                    {NAVIGATION_STYLE_OPTIONS.map((opt) => {
+                      const isSelected = (settings.navigationStyle ?? 'carousel') === opt.id;
+
+                      return (
+                        <Pressable
+                          key={opt.id}
+                          onPress={() => {
+                            Haptics.selectionAsync().catch(() => {});
+                            updateSettings({ navigationStyle: opt.id });
+                          }}
+                          className="p-4 rounded-2xl border"
+                          style={{
+                            backgroundColor: isSelected
+                              ? settings.darkMode
+                                ? 'rgba(255, 255, 255, 0.07)'
+                                : 'rgba(0, 0, 0, 0.04)'
+                              : palette.surface,
+                            borderColor: isSelected ? activeGeneralThemeColor : palette.border,
+                            borderWidth: isSelected ? 2 : 1,
+                          }}
+                        >
+                          <View className="flex-row items-center justify-between mb-2">
+                            <View className="flex-row items-center gap-2.5 flex-1">
+                              <View
+                                className="w-5 h-5 rounded-full items-center justify-center border"
+                                style={{
+                                  borderColor: isSelected ? activeGeneralThemeColor : palette.border,
+                                  backgroundColor: isSelected ? activeGeneralThemeColor : 'transparent',
+                                }}
+                              >
+                                {isSelected && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
+                              </View>
+                              <Text className={`text-base ${typeface.semibold}`} style={{ color: palette.text }}>
+                                {opt.title}
+                              </Text>
+                            </View>
+
+                            <View
+                              className="px-2.5 py-0.5 rounded-full"
+                              style={{
+                                backgroundColor: isSelected
+                                  ? settings.darkMode
+                                    ? 'rgba(255, 255, 255, 0.12)'
+                                    : 'rgba(0, 0, 0, 0.08)'
+                                  : palette.pillMuted,
+                              }}
+                            >
+                              <Text
+                                className={`text-[10px] ${typeface.semibold}`}
+                                style={{ color: isSelected ? activeGeneralThemeColor : palette.textMuted }}
+                              >
+                                {opt.badge}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <Text
+                            className={`text-xs ${typeface.regular} mb-3 leading-relaxed`}
+                            style={{ color: palette.textMuted }}
+                          >
+                            {opt.description}
+                          </Text>
+
+                          <View className="gap-1.5 pl-1">
+                            {opt.bullets.map((bullet, bIdx) => (
+                              <View key={bIdx} className="flex-row items-center gap-2">
+                                <View
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{
+                                    backgroundColor: isSelected ? activeGeneralThemeColor : palette.textMuted,
+                                    opacity: isSelected ? 1 : 0.5,
+                                  }}
+                                />
+                                <Text
+                                  className={`text-[11px] ${typeface.medium}`}
+                                  style={{ color: isSelected ? palette.text : palette.textMuted }}
+                                >
+                                  {bullet}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* ========================================================================= */}
+              {/* TAB 4: SYNC */}
               {/* ========================================================================= */}
               {activeTab === 'sync' && (
                 <View className="gap-5">
@@ -1464,7 +1702,7 @@ export function SettingsModal({
                   {settings.notionEnabled && (
                     <Pressable
                       onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
                         requestSync();
                       }}
                       className="flex-row items-center justify-center gap-2 p-3.5 rounded-xl border"

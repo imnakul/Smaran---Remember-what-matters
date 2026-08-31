@@ -129,8 +129,14 @@ export function LockScreen() {
           <Lock size={26} color={palette.textMuted} />
         </View>
 
-        <Text className={`text-xl ${typeface.semibold} mb-1.5`} style={{ color: palette.text }}>
+        <Text className={`text-xl ${typeface.semibold} mb-0.5`} style={{ color: palette.text }}>
           Smaran
+        </Text>
+        <Text
+          className={`text-xs ${typeface.regular} mb-8 tracking-wide`}
+          style={{ color: palette.textMuted }}
+        >
+          Remember what matters
         </Text>
         <Text
           className={`text-sm ${typeface.regular} mb-10 text-center`}

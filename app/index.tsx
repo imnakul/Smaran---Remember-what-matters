@@ -6,6 +6,7 @@ import { isToday, format } from 'date-fns';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as Haptics from 'expo-haptics';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { BlurView } from 'expo-blur';
 import { useShareIntentContext } from 'expo-share-intent';
 
 import { useThoughts } from '../src/hooks/useThoughts';
@@ -252,8 +253,7 @@ export default function Home() {
 
       {/* Top Header */}
       <View
-        className="px-6 pb-2 flex-row items-center justify-between"
-        style={{ paddingTop: Math.max(insets.top, 14) + 6 }}
+        className="px-6 pt-1 pb-2 flex-row items-center justify-between"
       >
         {isRemember ? (
           <GlassSurface>
@@ -296,7 +296,7 @@ export default function Home() {
             className="p-3 -mr-1"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <SettingsIcon size={22} color={palette.textMuted} />
+            <SettingsIcon size={22} color={palette.text} />
           </Pressable>
         </View>
       </View>
@@ -392,16 +392,17 @@ export default function Home() {
         </Animated.View>
       </GestureDetector>
 
+      {/* Floating Action Button (Transparent Frosted Glass Squircle) */}
       <Animated.View
         style={[
           {
             position: 'absolute',
             right: 24,
-            bottom: insets.bottom + 76,
+            bottom: insets.bottom + 96,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.24,
-            shadowRadius: 12,
+            shadowOpacity: settings.darkMode ? 0.35 : 0.16,
+            shadowRadius: 10,
             elevation: 8,
           },
           fabStyle,
@@ -421,21 +422,37 @@ export default function Home() {
           aria-label="Add a new thought"
           role="button"
           style={{
-            backgroundColor: settings.darkMode ? '#27272A' : (settings.generalThemeColor ?? '#2D2D2D'),
+            width: 64,
+            height: 64,
+            borderRadius: 24,
+            overflow: 'hidden',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: settings.darkMode
+              ? 'rgba(255, 255, 255, 0.15)'
+              : 'rgba(255, 255, 255, 0.70)',
+            borderWidth: 1.5,
+            borderColor: settings.darkMode
+              ? 'rgba(255, 255, 255, 0.25)'
+              : 'rgba(255, 255, 255, 0.90)',
           }}
-          className="w-16 h-16 rounded-[24px] items-center justify-center shadow-lg"
         >
-          <Plus size={32} color="#FFFFFF" />
+          <BlurView
+            intensity={settings.darkMode ? 35 : 60}
+            tint={settings.darkMode ? 'dark' : 'light'}
+            experimentalBlurMethod="dimezisBlurView"
+            style={StyleSheet.absoluteFill}
+          />
+          <Plus size={32} color={palette.text} strokeWidth={2.4} />
         </Pressable>
       </Animated.View>
 
-      {/* Modern Bottom Tab Bar with Smooth Sliding Background */}
+      {/* Modern Multi-Style Bottom Tab Bar */}
       <BottomTabBar
         activeCollection={activeCollection}
         onSelectCollection={handleSelectCollection}
-        thoughts={thoughts}
-        selectedDate={selectedDate}
         bottomInset={insets.bottom}
+        navigationStyle={settings.navigationStyle ?? 'carousel'}
       />
 
       <AddEditThoughtModal

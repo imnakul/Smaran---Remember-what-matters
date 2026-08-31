@@ -71,6 +71,9 @@ export function isFontFamilyId(value: string): value is FontFamilyId {
   return (FONT_FAMILY_IDS as readonly string[]).includes(value as FontFamilyId);
 }
 
+/** Style of bottom navigation bar: Carousel Arc, Orbital Moving Ring, Smooth Slider, or Floating Capsule. */
+export type NavigationStyle = 'carousel' | 'orbit' | 'slider' | 'floating';
+
 /**
  * Vertical breathing room inside a card.
  *
@@ -257,6 +260,8 @@ export interface AppSettings {
   notionDatabaseIds?: Partial<Record<CollectionId, string>>;
   /** ISO timestamp of the last fully successful sync, used for the status pill. */
   notionLastSyncedAt?: string;
+  /** Active bottom navigation bar style */
+  navigationStyle: NavigationStyle;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -284,6 +289,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   privacyScreen: false,
   notionEnabled: false,
   notionDatabaseIds: {},
+  navigationStyle: 'carousel',
 };
 
 export interface Thought {

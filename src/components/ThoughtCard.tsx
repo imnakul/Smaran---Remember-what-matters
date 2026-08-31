@@ -147,7 +147,9 @@ export function ThoughtCard({ thought, isCompleted, onToggle, onEdit, onOpen, on
   const paddingVertical = customPad !== undefined ? customPad : resolveCardPaddingY(appearance, effectiveDensity);
 
   const minHeight = customPad !== undefined ? Math.max(48, customPad * 2.2 + 20) : resolveCardMinHeight(appearance, effectiveDensity);
-  const gapY = resolveCardGapY(appearance, effectiveSpacing);
+  const customDensityMultiplier = colTheme?.customCardDensity ?? settings.customCardDensity ?? 1.0;
+  const baseGapY = resolveCardGapY(appearance, effectiveSpacing);
+  const gapY = Math.round(baseGapY * customDensityMultiplier);
   const fontScale = colTheme?.fontSizeScale ?? settings.fontSizeScale ?? 1.0;
   const fontSize = Math.round(TEXT_SIZE_MAP[settings.textSize] * appearance.textScale * fontScale);
 

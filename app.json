@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Smaran: Remember what matters",
+    "name": "Smaran",
     "slug": "Remember",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "scheme": "remember-app",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.remember.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
