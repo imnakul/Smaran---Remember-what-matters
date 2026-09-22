@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react';
 
 import { BRAND, LINKS } from '@/lib/content';
+import { CTA_BASE } from '@/lib/styles';
 import { GithubIcon } from '@/components/ui/GithubIcon';
 import { Logo } from '@/components/ui/Logo';
 import { Reveal } from '@/components/ui/Reveal';
@@ -30,7 +31,7 @@ export function SceneCta(): React.JSX.Element {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <a
               href={LINKS.playStore}
-              className="group inline-flex items-center gap-2 rounded-pill bg-[var(--scene-ink)] px-7 py-3.5 text-sm font-semibold text-[#0d1410] transition-transform duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
+              className={`${CTA_BASE} border border-transparent bg-[var(--scene-ink)] px-7 text-[#0d1410] hover:-translate-y-0.5`}
             >
               <Download
                 className="size-4 transition-transform duration-300 group-hover:translate-y-0.5"
@@ -40,7 +41,7 @@ export function SceneCta(): React.JSX.Element {
             </a>
             <a
               href={LINKS.github}
-              className="inline-flex items-center gap-2 rounded-pill border border-white/25 px-7 py-3.5 text-sm font-semibold transition-colors duration-300 hover:border-white/50 hover:bg-white/10"
+              className={`${CTA_BASE} border border-white/25 px-7 hover:border-white/50 hover:bg-white/10`}
             >
               <GithubIcon className="size-4" />
               Source on GitHub

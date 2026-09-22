@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { ArrowDown, Download } from 'lucide-react';
 
 import { BRAND, LINKS } from '@/lib/content';
+import { CTA_BASE } from '@/lib/styles';
 import { CORNER_RADIUS, DEFAULT_ACCENT, TYPEFACES } from '@/lib/theme';
 import type { PreviewConfig } from '@/components/mockup/AppScreen';
 import { WallpaperPhone } from './WallpaperPhone';
@@ -100,7 +101,7 @@ export function SceneHero(): React.JSX.Element {
           <motion.div {...rise(0.24)} className="mt-9 flex flex-wrap items-center gap-3">
             <a
               href={LINKS.playStore}
-              className="group inline-flex items-center gap-2 rounded-pill bg-[var(--scene-ink)] px-6 py-3.5 text-sm font-semibold text-[#0d1410] shadow-[0_18px_40px_-18px_rgba(0,0,0,0.9)] transition-transform duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
+              className={`${CTA_BASE} border border-transparent bg-[var(--scene-ink)] px-6 text-[#0d1410] shadow-[0_18px_40px_-18px_rgba(0,0,0,0.9)] hover:-translate-y-0.5`}
             >
               <Download
                 className="size-4 transition-transform duration-300 group-hover:translate-y-0.5"
@@ -111,7 +112,7 @@ export function SceneHero(): React.JSX.Element {
             {/* Uses the glass recipe directly: wrapping an anchor in <Glass as="a"> would nest anchors. */}
             <a
               href="#scene-yours"
-              className="glass group inline-flex items-center gap-2 rounded-pill px-6 py-3.5 text-sm font-semibold transition-transform duration-300 hover:-translate-y-0.5"
+              className={`${CTA_BASE} glass px-6 hover:-translate-y-0.5`}
             >
               Make it yours
               <ArrowDown
