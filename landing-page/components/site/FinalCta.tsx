@@ -15,7 +15,7 @@ export function FinalCta(): React.JSX.Element {
       />
 
       <Reveal className="relative mx-auto max-w-2xl px-4 text-center sm:px-6">
-        <Logo className="mx-auto size-12 text-ink" />
+        <Logo className="mx-auto h-12 w-auto" />
 
         <h2 className="font-display mt-8 text-4xl leading-[1.1] text-balance sm:text-5xl">
           Start with one thought
@@ -44,10 +44,6 @@ export function FinalCta(): React.JSX.Element {
             Source on GitHub
           </a>
         </div>
-
-        <p lang="sa" className="font-display mt-12 text-lg text-accent-strong">
-          {BRAND.devanagari}
-        </p>
       </Reveal>
     </section>
   );

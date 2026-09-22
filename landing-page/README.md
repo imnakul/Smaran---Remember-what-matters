@@ -48,6 +48,18 @@ Two things deliberately diverge from the product tokens, both for WCAG AA:
 The page is audited with `axe-core` at **0 violations** (WCAG 2.1 A + AA) on
 desktop light, desktop dark and mobile.
 
+### Brand mark
+
+`public/logo.png` is the app's own icon, derived from `assets/icon.png` in the
+Expo workspace with its solid black plate matted out to alpha — so one file
+works on the light paper page, on dark, and on the scene's frosted panels
+without a box around it. `app/icon.png` (the favicon) comes from the same
+artwork at 512px, since the repo's `assets/favicon.png` is only 48px.
+
+Size the mark with a height and an automatic width (`h-7 w-auto`). It is
+slightly taller than it is wide, so a square utility such as `size-7` squashes
+it.
+
 ### Paired buttons
 
 Both hero and closing calls to action share `CTA_BASE` from

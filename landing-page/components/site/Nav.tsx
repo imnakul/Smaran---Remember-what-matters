@@ -53,7 +53,7 @@ export function Nav(): React.JSX.Element {
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:h-20 lg:px-8">
         <a href="#top" className="flex items-center gap-2.5" aria-label={`${BRAND.name} home`}>
-          <Logo className="size-7 text-ink" />
+          <Logo className="h-7 w-auto" />
           <span className="font-display text-lg font-semibold tracking-tight">{BRAND.name}</span>
         </a>
 

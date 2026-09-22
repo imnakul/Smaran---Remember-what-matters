@@ -1,37 +1,35 @@
+import Image from 'next/image';
+
 interface LogoProps {
+  /**
+   * Sizing for the mark. Set a height and leave the width automatic
+   * (`h-7 w-auto`) — the artwork is slightly taller than it is wide, so a
+   * square utility such as `size-7` would squash it.
+   */
   readonly className?: string;
 }
 
 /**
- * The Smaran mark: a ring of mala beads with one bead lit.
+ * The Smaran mark: the app's own quill-in-a-ring icon.
  *
- * Smaran is the practice of returning to a thought, and a japa mala is the
- * oldest instrument for exactly that -- a loop you come back around. The lit
- * bead is the thought currently held, which is also what the app's progress
- * ring draws.
+ * `public/logo.png` is derived from `assets/icon.png` in the Expo workspace,
+ * with its solid black plate matted out to alpha so the same file sits on the
+ * light paper page, the dark theme and the frosted panels of the scene variant
+ * without a box around it.
+ *
+ * It is decorative in every current placement — the brand name or the heading
+ * beside it already carries the meaning — so the alt text is intentionally
+ * empty rather than repeating "Smaran" to a screen reader twice.
  */
 export function Logo({ className = '' }: LogoProps): React.JSX.Element {
-  const beads = Array.from({ length: 12 }, (_, index) => index);
-
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden focusable="false">
-      {beads.map((index) => {
-        const angle = (index / beads.length) * Math.PI * 2 - Math.PI / 2;
-        const cx = 16 + Math.cos(angle) * 11;
-        const cy = 16 + Math.sin(angle) * 11;
-        const isLit = index === 0;
-
-        return (
-          <circle
-            key={index}
-            cx={cx}
-            cy={cy}
-            r={isLit ? 3 : 1.7}
-            fill={isLit ? 'var(--accent)' : 'currentColor'}
-            opacity={isLit ? 1 : 0.38}
-          />
-        );
-      })}
-    </svg>
+    <Image
+      src="/logo.png"
+      alt=""
+      width={471}
+      height={512}
+      priority
+      className={className}
+    />
   );
 }

@@ -32,8 +32,6 @@ import {
 
 export const BRAND = {
   name: 'Smaran',
-  /** Devanagari for "remembrance" -- the word the product is named after. */
-  devanagari: 'स्मरण',
   tagline: 'Remember what matters, not what is due.',
   version: '1.2.0',
 } as const;
@@ -227,7 +225,7 @@ export const FAQ: readonly FaqItem[] = [
   {
     question: 'What does "Smaran" mean?',
     answer:
-      'Smaran (स्मरण) is Sanskrit for remembrance -- the act of holding something in mind and returning to it, rather than merely storing it.',
+      'Smaran is Sanskrit for remembrance -- the act of holding something in mind and returning to it, rather than merely storing it.',
   },
 ] as const;
 

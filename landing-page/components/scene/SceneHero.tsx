@@ -46,21 +46,9 @@ export function SceneHero(): React.JSX.Element {
 
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1.05fr_minmax(0,0.95fr)] lg:gap-10 lg:px-8">
         <div className="max-w-xl">
-          <motion.p
-            {...rise(0)}
-            className="font-grotesk flex items-center gap-2.5 text-[11px] tracking-[0.22em] uppercase"
-            style={{ color: 'var(--scene-ink-muted)' }}
-          >
-            <span lang="sa" className="text-base tracking-normal" style={{ color: 'var(--scene-accent)' }}>
-              {BRAND.devanagari}
-            </span>
-            <span aria-hidden className="h-px w-6 bg-white/30" />
-            Sanskrit for remembrance
-          </motion.p>
-
           <motion.h1
-            {...rise(0.08)}
-            className="font-display mt-6 text-[2.7rem] leading-[1.04] tracking-tight text-balance sm:text-6xl lg:text-[4.2rem]"
+            {...rise(0)}
+            className="font-display text-[2.7rem] leading-[1.04] tracking-tight text-balance sm:text-6xl lg:text-[4.2rem]"
           >
             A quiet place
             <br />
