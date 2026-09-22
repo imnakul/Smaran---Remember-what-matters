@@ -1,0 +1,231 @@
+@import "tailwindcss";
+
+/*
+ * Dark mode is driven by a `data-theme` attribute on <html> rather than the
+ * `prefers-color-scheme` media query, because the site offers an explicit
+ * toggle. The attribute is set by a blocking script in `app/layout.tsx` before
+ * first paint, so there is never a flash of the wrong theme.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * ---------------------------------------------------------------------------
+ * Design tokens, ported 1:1 from the Smaran app.
+ *
+ * Every value below has a counterpart in the React Native source so the
+ * marketing site and the product cannot drift apart:
+ *   --paper / --ink / --ink-muted -> src/constants/theme.ts  NEUTRAL.light
+ *   --paper-*  (dark values)      -> src/constants/theme.ts  NEUTRAL.dark
+ *   --accent                      -> src/constants/theme.ts  THEMES.sage.accent
+ *   --radius-*                    -> src/constants/theme.ts  CORNER_RADIUS
+ * ---------------------------------------------------------------------------
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --paper: #fdfdf9;
+  --paper-raised: #ffffff;
+  --paper-sunken: #f5f5ee;
+
+  /* Type */
+  --ink: #2d2d2d;
+  /*
+   * The app uses #8B8B8B for muted text. On the web at 12-14px that is only
+   * ~3.3:1 against this background, which fails WCAG AA, so the site darkens
+   * it. This is a deliberate divergence from the product token, not drift:
+   * a phone renders this copy larger and at arm's length.
+   */
+  --ink-muted: #666666;
+
+  /* Lines & washes */
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.14);
+  --pill-muted: rgba(45, 45, 45, 0.05);
+
+  /*
+   * The accent is deliberately a bare custom property rather than a Tailwind
+   * colour: the theme playground rewrites it at runtime on a scoped wrapper,
+   * and every accent-derived shade is mixed from it, so one assignment
+   * re-themes an entire subtree.
+   */
+  --accent: #7a967a;
+  /*
+   * Sage at full strength is ~3.2:1 on paper -- fine for fills, icons and
+   * glows, too weak for text or for carrying white on a button. These two
+   * carry every accent use that has a contrast obligation.
+   */
+  --accent-strong: #556f55;
+  --accent-solid: #556f55;
+  --accent-on-solid: #ffffff;
+  --wash: #eaefe9;
+
+  /* Card geometry, matching the app's own corner presets. */
+  --corner-sharp: 3px;
+  --corner-soft: 14px;
+  --corner-round: 24px;
+  --corner-pill: 32px;
+
+  --elev-card: 0 1px 2px rgba(45, 45, 45, 0.04), 0 8px 24px -12px rgba(45, 45, 45, 0.12);
+  --elev-float: 0 2px 4px rgba(45, 45, 45, 0.04), 0 24px 60px -24px rgba(45, 45, 45, 0.24);
+  --elev-device: 0 40px 90px -30px rgba(45, 45, 45, 0.38), 0 12px 28px -12px rgba(45, 45, 45, 0.2);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #141416;
+  --paper-raised: #1f1f23;
+  --paper-sunken: #0e0e10;
+
+  --ink: #f1f1ef;
+  --ink-muted: #9a9a9e;
+
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --pill-muted: rgba(255, 255, 255, 0.08);
+
+  --wash: #212b22;
+
+  /*
+   * Inverted for dark: accent text must lighten to clear the dark ground, and
+   * a solid button becomes a light plate carrying dark text.
+   */
+  --accent-strong: #a3bfa3;
+  --accent-solid: #9dba9d;
+  --accent-on-solid: #10140f;
+
+  --elev-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --elev-float: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+  --elev-device: 0 40px 90px -30px rgba(0, 0, 0, 0.8), 0 12px 28px -12px rgba(0, 0, 0, 0.6);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-raised: var(--paper-raised);
+  --color-sunken: var(--paper-sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-solid: var(--accent-solid);
+  --color-accent-on-solid: var(--accent-on-solid);
+  --color-wash: var(--wash);
+  --color-pill: var(--pill-muted);
+
+  /*
+   * The four families the app itself ships. Keeping the marketing site on the
+   * product's own typefaces is what makes the two feel like one artefact.
+   */
+  --font-display: var(--font-lora), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-hand: var(--font-caveat), ui-rounded, cursive;
+  --font-grotesk: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sharp: var(--corner-sharp);
+  --radius-soft: var(--corner-soft);
+  --radius-round: var(--corner-round);
+  --radius-pill: var(--corner-pill);
+
+  --shadow-card: var(--elev-card);
+  --shadow-float: var(--elev-float);
+  --shadow-device: var(--elev-device);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Offsets anchor jumps so a section never lands under the sticky nav. */
+    scroll-padding-top: 6rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--accent) 28%, transparent);
+    color: var(--ink);
+  }
+
+  /*
+   * A single visible focus treatment for every interactive element, so keyboard
+   * users get the same affordance everywhere without per-component work.
+   */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /*
+   * Paper grain. A single tiled fractal-noise SVG at very low opacity; it is
+   * what keeps the large flat areas from reading as a default white page.
+   */
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  [data-theme="dark"] .grain::before {
+    opacity: 0.05;
+  }
+
+  /* Ruled-notebook baseline, used behind editorial blocks. */
+  .ruled {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2rem,
+      var(--line) 2rem,
+      var(--line) calc(2rem + 1px)
+    );
+  }
+
+  .accent-glow {
+    background: radial-gradient(
+      closest-side,
+      color-mix(in oklab, var(--accent) 36%, transparent),
+      transparent
+    );
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
