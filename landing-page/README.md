@@ -48,6 +48,14 @@ Two things deliberately diverge from the product tokens, both for WCAG AA:
 The page is audited with `axe-core` at **0 violations** (WCAG 2.1 A + AA) on
 desktop light, desktop dark and mobile.
 
+### Paired buttons
+
+Both hero and closing calls to action share `CTA_BASE` from
+[`lib/styles.ts`](lib/styles.ts). It omits the border on purpose: every variant
+supplies its own 1px one (`border border-transparent` on a filled button),
+because a border participates in the box and a button without one renders 2px
+shorter than the outlined or frosted button beside it.
+
 ### Dark mode
 
 Driven by a `data-theme` attribute on `<html>`, set before first paint by
@@ -78,11 +86,13 @@ as it did before the variant existed.
 - **One continuous background.** The wallpaper is fixed rather than repeated per
   section, so scrolling reads as moving through a single scene. It drifts at a
   fraction of the scroll speed to sit back in depth.
-- **Soft outside, sharp inside.** The source art is 736x1259 — fine on a phone,
-  past 2x upscale on a desktop viewport. The page backdrop is blurred, which
-  turns that limit into the intended effect and gives the frosted panels
-  something worth refracting; the same file renders crisp inside the phone
-  mockups, where it displays near its native width.
+- **Two images, both sharp.** `public/scene.jpg` (1672x941 landscape) is the
+  page backdrop and renders at roughly native scale on common viewports;
+  `public/wallpaper.jpg` (736x1259 portrait) is the app's own background inside
+  the phone mockups, where it displays near its native width. The backdrop is
+  deliberately *not* blurred — leaving it crisp is what sells the frosted
+  panels, because then the only blurred thing on screen is what you are looking
+  *through*.
 - **Day / Dusk** replaces light/dark. It drives scrim weight rather than
   flipping a palette, because the type sits on a photograph either way — which
   is exactly what the app's `WALLPAPER_DIM_OPACITY` does.
@@ -133,9 +143,10 @@ page's own utilities, so a dark phone can sit on a light page.
 - [ ] Set the real domain in `metadataBase` ([`app/layout.tsx`](app/layout.tsx)).
 - [ ] Add an `app/opengraph-image.tsx` (or a static `opengraph-image.png`) for link previews.
 - [ ] Confirm the iOS claim in the FAQ still matches the roadmap.
-- [ ] **Clear the rights to `public/wallpaper.jpg`.** Using an image as your own
-      phone wallpaper is not the same as publishing it on a public marketing
-      site. Swap it for art you own or have licensed before launch.
+- [ ] **Clear the rights to `public/scene.jpg` and `public/wallpaper.jpg`.**
+      Using an image as your own phone wallpaper is not the same as publishing
+      it on a public marketing site. Swap both for art you own or have licensed
+      before launch — the code takes whatever sits at those two paths.
 - [ ] Decide which variant ships at `/`, and delete or redirect the other.
 
 ## Moving this out

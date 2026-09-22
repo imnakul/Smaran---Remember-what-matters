@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react';
 
 import { BRAND, LINKS } from '@/lib/content';
+import { CTA_BASE } from '@/lib/styles';
 import { GithubIcon } from '@/components/ui/GithubIcon';
 import { Logo } from '@/components/ui/Logo';
 import { Reveal } from '@/components/ui/Reveal';
@@ -30,14 +31,14 @@ export function FinalCta(): React.JSX.Element {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <a
             href={LINKS.playStore}
-            className="group inline-flex items-center gap-2 rounded-pill bg-accent-solid px-7 py-3.5 text-sm font-semibold text-accent-on-solid shadow-float transition-all duration-300 hover:-translate-y-0.5 hover:brightness-95 active:scale-[0.98]"
+            className={`${CTA_BASE} border border-transparent bg-accent-solid px-7 text-accent-on-solid shadow-float hover:-translate-y-0.5 hover:brightness-95`}
           >
             <Download className="size-4 transition-transform duration-300 group-hover:translate-y-0.5" strokeWidth={2} />
             Get it for Android
           </a>
           <a
             href={LINKS.github}
-            className="inline-flex items-center gap-2 rounded-pill border border-line-strong px-7 py-3.5 text-sm font-semibold transition-all duration-300 hover:border-accent hover:text-accent-strong"
+            className={`${CTA_BASE} border border-line-strong px-7 hover:border-accent hover:text-accent-strong`}
           >
             <GithubIcon className="size-4" />
             Source on GitHub

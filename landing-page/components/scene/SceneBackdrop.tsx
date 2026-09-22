@@ -12,17 +12,15 @@ import type { ThemedStyle } from '@/lib/styles';
  * through one continuous scene instead of past a series of panels that happen
  * to share a texture.
  *
- * Two deliberate treatments:
+ * It is rendered sharp. The landscape source is 1672x941, so at common
+ * viewport sizes it displays at roughly native scale — and leaving it crisp is
+ * what sells the frosted panels, because then the only blurred thing on screen
+ * is what you are looking *through*. (The portrait wallpaper inside the phone
+ * mockups is a different file; that one is the app's own background.)
  *
- * 1. **Soft focus.** The source art is 736x1259, which is fine on a phone but
- *    upscales past 2x on a desktop viewport. Blurring it turns that limit into
- *    the intended effect — the scene is atmosphere, not subject — and it is
- *    what gives the frosted panels something worth refracting. The same image
- *    renders sharp inside the phone mockups, where it is displayed near its
- *    native width.
- * 2. **Scrim.** Type sits over a photograph, so contrast cannot be reasoned
- *    about from the text colour alone. The scrim is weighted so even the
- *    brightest pixel (the sun) composites down to a dark ground first.
+ * **Scrim.** Type sits over a photograph, so contrast cannot be reasoned about
+ * from the text colour alone. The scrim is weighted so even the brightest pixel
+ * in the image — here the sun — composites down to a dark ground first.
  */
 export function SceneBackdrop(): React.JSX.Element {
   const prefersReducedMotion = useReducedMotion();
@@ -39,14 +37,13 @@ export function SceneBackdrop(): React.JSX.Element {
         style={prefersReducedMotion ? undefined : { y }}
       >
         <Image
-          src="/wallpaper.jpg"
+          src="/scene.jpg"
           alt=""
           fill
           priority
           sizes="100vw"
-          // `scale-110` hides the transparent fringe a large blur leaves at the
-          // edges of the element.
-          className="scale-110 object-cover blur-[3px]"
+          // A touch of overscan so the parallax drift never exposes an edge.
+          className="scale-105 object-cover"
         />
       </motion.div>
 
