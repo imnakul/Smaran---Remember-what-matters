@@ -61,6 +61,59 @@ OS until the visitor makes an explicit choice.
 > component yields a client-reference stub rather than the string, which
 > silently corrupts the inlined script.
 
+## Two variants
+
+| Route | Direction | Ground |
+| --- | --- | --- |
+| `/` | "Quiet paper" — editorial, warm, serif display type | Warm paper, sage accent |
+| `/new` | "Through the window" — cinematic, frosted glass on the app's wallpaper | The illustration, scrimmed |
+
+They share every piece of content, product data and token module, so the two
+cannot drift apart on facts — only the surface treatment differs. Everything
+specific to the scene is scoped under a `.scene` class, so `/` renders exactly
+as it did before the variant existed.
+
+### The scene (`/new`)
+
+- **One continuous background.** The wallpaper is fixed rather than repeated per
+  section, so scrolling reads as moving through a single scene. It drifts at a
+  fraction of the scroll speed to sit back in depth.
+- **Soft outside, sharp inside.** The source art is 736x1259 — fine on a phone,
+  past 2x upscale on a desktop viewport. The page backdrop is blurred, which
+  turns that limit into the intended effect and gives the frosted panels
+  something worth refracting; the same file renders crisp inside the phone
+  mockups, where it displays near its native width.
+- **Day / Dusk** replaces light/dark. It drives scrim weight rather than
+  flipping a palette, because the type sits on a photograph either way — which
+  is exactly what the app's `WALLPAPER_DIM_OPACITY` does.
+- **A dock, not a header.** On mobile the navigation is a floating glass dock at
+  thumb height with five destinations, mirroring the app's five collection tabs.
+  An `IntersectionObserver` highlights the section you are actually in, so it
+  reports position rather than only offering destinations.
+- **The playground gains a wallpaper dim slider**, the control the background
+  makes relevant. Its range is the app's real 0.25–0.75.
+
+#### Contrast over a photograph
+
+Type on an image cannot be checked from its colour alone, so the scene is built
+so the ground is deterministic before any type is drawn:
+
+- The scrim is weighted so even the brightest pixel (the sun) composites down to
+  a dark ground first.
+- Content panels use `.glass-strong`; chrome uses the lighter `.glass` with a
+  brighter secondary ink (`--scene-ink-soft`), because the thinner wash leaves
+  `--scene-ink-muted` just under 4.5:1.
+- Hero copy sits on its own gradient (`.text-scrim`), since it is on the scene
+  rather than on a pane.
+- `.scene` carries an **opaque dark base**. That is the fallback if the image
+  404s or is still loading — without it the panes composite against the
+  document's paper-white body and the light type becomes unreadable.
+
+axe-core reports **0 violations** on `/new` in both Day and Dusk and on mobile.
+It marks 47 nodes *indeterminate* rather than passing them, because it cannot
+compute the luminance of a background image; those were verified by hand
+against the worst-case (brightest) pixel.
+
 ## Phone mockups
 
 The device screens in [`components/mockup/`](components/mockup) are **HTML
@@ -80,6 +133,10 @@ page's own utilities, so a dark phone can sit on a light page.
 - [ ] Set the real domain in `metadataBase` ([`app/layout.tsx`](app/layout.tsx)).
 - [ ] Add an `app/opengraph-image.tsx` (or a static `opengraph-image.png`) for link previews.
 - [ ] Confirm the iOS claim in the FAQ still matches the roadmap.
+- [ ] **Clear the rights to `public/wallpaper.jpg`.** Using an image as your own
+      phone wallpaper is not the same as publishing it on a public marketing
+      site. Swap it for art you own or have licensed before launch.
+- [ ] Decide which variant ships at `/`, and delete or redirect the other.
 
 ## Moving this out
 
