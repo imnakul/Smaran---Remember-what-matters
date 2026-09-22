@@ -115,6 +115,13 @@ interface AppScreenProps {
   readonly lockAccent?: boolean;
   /** Which collection tab reads as active. */
   readonly activeTab?: number;
+  /**
+   * Renders the screen over a caller-supplied background instead of a solid
+   * fill, which is how the app looks once the owner sets a wallpaper. The
+   * caller paints the image behind this element; all this does is make the
+   * screen's own surfaces translucent so it shows through.
+   */
+  readonly translucent?: boolean;
 }
 
 /**
@@ -130,12 +137,17 @@ export function AppScreen({
   thoughts = SAMPLE_THOUGHTS,
   lockAccent = false,
   activeTab = 0,
+  translucent = false,
 }: AppScreenProps): React.JSX.Element {
   const { accent, cornerRadius, border, typeface, dark } = config;
 
   const screenStyle: ThemedStyle = {
-    '--s-bg': dark ? '#141416' : '#FDFDF9',
-    '--s-surface': dark ? '#1F1F23' : '#FFFFFF',
+    '--s-bg': translucent ? 'transparent' : dark ? '#141416' : '#FDFDF9',
+    '--s-surface': translucent
+      ? 'rgba(14,19,16,0.55)'
+      : dark
+        ? '#1F1F23'
+        : '#FFFFFF',
     '--s-text': dark ? '#F1F1EF' : '#2D2D2D',
     '--s-muted': dark ? '#9A9A9E' : '#8B8B8B',
     '--s-line': dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
@@ -266,7 +278,9 @@ export function AppScreen({
 
       {/* Collection tab bar */}
       <div
-        className="flex items-center justify-around border-t px-2 pt-2 pb-5"
+        className={`flex items-center justify-around border-t px-2 pt-2 pb-5 ${
+          translucent ? 'backdrop-blur-md' : ''
+        }`}
         style={{ borderColor: 'var(--s-line)', background: 'var(--s-surface)' }}
       >
         {TAB_ICONS.map((Icon, index) => {
