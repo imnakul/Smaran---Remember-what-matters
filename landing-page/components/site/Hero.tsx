@@ -51,20 +51,9 @@ export function Hero(): React.JSX.Element {
       <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1.05fr_minmax(0,0.95fr)] lg:gap-10 lg:px-8">
         {/* Copy */}
         <div className="max-w-xl">
-          <motion.p
-            {...rise(0)}
-            className="font-grotesk flex items-center gap-2.5 text-[11px] tracking-[0.22em] text-muted uppercase"
-          >
-            <span lang="sa" className="text-base tracking-normal text-accent-strong">
-              {BRAND.devanagari}
-            </span>
-            <span aria-hidden className="h-px w-6 bg-line-strong" />
-            Sanskrit for remembrance
-          </motion.p>
-
           <motion.h1
-            {...rise(0.08)}
-            className="font-display mt-6 text-[2.6rem] leading-[1.05] tracking-tight text-balance sm:text-6xl lg:text-[4.1rem]"
+            {...rise(0)}
+            className="font-display text-[2.6rem] leading-[1.05] tracking-tight text-balance sm:text-6xl lg:text-[4.1rem]"
           >
             The things worth
             <br />

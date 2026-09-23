@@ -24,7 +24,7 @@ export function SceneFooter(): React.JSX.Element {
               className="flex items-center gap-2.5"
               aria-label={`${BRAND.name} home`}
             >
-              <Logo className="size-6 text-[var(--scene-ink)]" />
+              <Logo className="h-6 w-auto" />
               <span className="font-display text-base font-semibold">{BRAND.name}</span>
               <span
                 className="font-grotesk rounded-pill bg-white/10 px-2 py-0.5 text-[10px]"

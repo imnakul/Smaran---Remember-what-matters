@@ -73,7 +73,7 @@ export function SceneNav(): React.JSX.Element {
             className="flex shrink-0 items-center gap-2.5 pl-1"
             aria-label={`${BRAND.name} home`}
           >
-            <Logo className="size-6 text-[var(--scene-ink)]" />
+            <Logo className="h-6 w-auto" />
             <span className="font-display text-base font-semibold">{BRAND.name}</span>
           </a>
 

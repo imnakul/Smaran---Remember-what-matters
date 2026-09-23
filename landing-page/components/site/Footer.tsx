@@ -9,7 +9,7 @@ export function Footer(): React.JSX.Element {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <div>
           <a href="#top" className="flex items-center gap-2.5" aria-label={`${BRAND.name} home`}>
-            <Logo className="size-6 text-ink" />
+            <Logo className="h-6 w-auto" />
             <span className="font-display text-base font-semibold">{BRAND.name}</span>
             <span className="font-grotesk rounded-pill bg-pill px-2 py-0.5 text-[10px] text-muted">
               v{BRAND.version}

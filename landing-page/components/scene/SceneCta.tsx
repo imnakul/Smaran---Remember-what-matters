@@ -12,7 +12,7 @@ export function SceneCta(): React.JSX.Element {
     <section className="relative py-20 sm:py-28">
       <Reveal className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <Glass tone="strong" className="rounded-[2rem] px-6 py-14 text-center sm:px-12 sm:py-16">
-          <Logo className="mx-auto size-12 text-[var(--scene-ink)]" />
+          <Logo className="mx-auto h-12 w-auto" />
 
           <h2 className="font-display mt-8 text-4xl leading-[1.1] text-balance sm:text-5xl">
             Start with one thought
@@ -47,10 +47,6 @@ export function SceneCta(): React.JSX.Element {
               Source on GitHub
             </a>
           </div>
-
-          <p lang="sa" className="font-display mt-12 text-lg" style={{ color: 'var(--scene-accent)' }}>
-            {BRAND.devanagari}
-          </p>
         </Glass>
       </Reveal>
     </section>
