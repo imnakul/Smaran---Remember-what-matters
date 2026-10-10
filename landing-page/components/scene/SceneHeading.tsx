@@ -27,12 +27,17 @@ export function SceneHeading({
   return (
     <Reveal className={`max-w-2xl ${isCentered ? 'mx-auto text-center' : ''}`}>
       <p
-        className="font-grotesk text-[11px] tracking-[0.2em] uppercase"
-        style={{ color: 'var(--scene-accent)' }}
+        className="glass font-grotesk inline-flex items-center gap-2 rounded-full py-1.5 pr-3.5 pl-3 text-[11px] tracking-[0.2em] uppercase"
+        style={{ color: 'var(--scene-ink-soft)' }}
       >
+        <span
+          aria-hidden
+          className="size-1.5 rounded-full"
+          style={{ background: 'var(--scene-accent)', boxShadow: '0 0 8px var(--scene-accent)' }}
+        />
         {eyebrow}
       </p>
-      <h2 className="font-display mt-4 text-3xl leading-[1.15] text-balance sm:text-4xl lg:text-[2.75rem]">
+      <h2 className="font-display text-luminous mt-5 text-3xl leading-[1.15] text-balance sm:text-4xl lg:text-[2.75rem]">
         {title}
       </h2>
       {lede ? (

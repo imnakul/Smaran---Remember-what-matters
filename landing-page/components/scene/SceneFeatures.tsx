@@ -26,13 +26,16 @@ export function SceneFeatures(): React.JSX.Element {
                 <Glass
                   as="article"
                   tone="strong"
-                  className="group flex h-full flex-col rounded-round p-6 transition-transform duration-500 hover:-translate-y-1"
+                  className="glass-interactive group flex h-full flex-col rounded-round p-6 transition-transform duration-500 hover:-translate-y-1"
                 >
                   <span
                     className="grid size-10 place-items-center rounded-soft transition-transform duration-500 group-hover:scale-110"
                     style={{
-                      background: 'color-mix(in oklab, var(--scene-accent) 22%, transparent)',
+                      background:
+                        'linear-gradient(150deg, color-mix(in oklab, var(--scene-accent) 34%, transparent), color-mix(in oklab, var(--scene-accent) 10%, transparent))',
                       color: 'var(--scene-accent)',
+                      boxShadow:
+                        'inset 0 1px 0 rgba(255,255,255,0.16), inset 0 0 0 1px color-mix(in oklab, var(--scene-accent) 30%, transparent), 0 10px 24px -14px var(--scene-accent)',
                     }}
                   >
                     <Icon className="size-[18px]" strokeWidth={1.75} />

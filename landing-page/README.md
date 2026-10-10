@@ -115,6 +115,21 @@ as it did before the variant existed.
 - **The playground gains a wallpaper dim slider**, the control the background
   makes relevant. Its range is the app's real 0.25–0.75.
 
+- **Glass, not grey boxes.** Every pane layers blur, a wash with baked-in
+  grain, and a *graded* edge ring (`::before`, bright at the top-left bevel,
+  fading along the sides). Panes with `.glass-interactive` also follow the
+  mouse: one delegated listener in `PointerGlow` writes `--mx` / `--my`, which
+  lights the edge in the accent and casts a soft spot across the face. Touch
+  input is ignored.
+- **Frosted notes inside the phone.** With `translucent` set, `AppScreen`
+  draws each thought as a glass card (accent tint over a dark wash, top
+  highlight, a bloom of the note's colour), with a floating glass tab dock and
+  date strip. The opaque screen used on `/` is untouched. `WallpaperPhone`
+  uses the `graphite` chassis and casts an accent glow onto the scene.
+- **Hero widgets.** A reminder, a Notion sync pill and the streak float off
+  the device as separate glass panes (`HeroWidgets`). Decorative and
+  `aria-hidden`; hidden on phones, and only the sync pill shows at `lg`.
+
 #### Contrast over a photograph
 
 Type on an image cannot be checked from its colour alone, so the scene is built

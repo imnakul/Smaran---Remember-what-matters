@@ -8,6 +8,7 @@ import { SceneFaq } from '@/components/scene/SceneFaq';
 import { SceneFeatures } from '@/components/scene/SceneFeatures';
 import { SceneFooter } from '@/components/scene/SceneFooter';
 import { SceneHero } from '@/components/scene/SceneHero';
+import { PointerGlow } from '@/components/scene/PointerGlow';
 import { SceneNav } from '@/components/scene/SceneNav';
 import { ScenePrivacy } from '@/components/scene/ScenePrivacy';
 import { SceneYours } from '@/components/scene/SceneYours';
@@ -30,8 +31,9 @@ export const metadata: Metadata = {
  */
 export default function ScenePage(): React.JSX.Element {
   return (
-    <div className="scene relative min-h-dvh">
+    <div className="scene relative min-h-dvh overflow-x-clip">
       <SceneBackdrop />
+      <PointerGlow />
       <SceneNav />
       <main id="scene-main" className="relative z-10">
         <SceneHero />
