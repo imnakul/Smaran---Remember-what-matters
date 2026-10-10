@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 
 import { BRAND, LINKS } from '@/lib/content';
 import { Logo } from '@/components/ui/Logo';
-import { DayDuskToggle } from './DayDuskToggle';
 import { Glass } from './Glass';
 
 interface SceneLink {
@@ -100,8 +99,7 @@ export function SceneNav(): React.JSX.Element {
             </ul>
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <DayDuskToggle />
+          <div className="flex shrink-0 items-center">
             <a
               href={LINKS.playStore}
               className="rounded-pill bg-[var(--scene-ink)] px-4 py-2 text-[13px] font-semibold text-[#0d1410] transition-transform duration-300 hover:-translate-y-0.5 sm:px-5"

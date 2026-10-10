@@ -45,9 +45,6 @@ Two things deliberately diverge from the product tokens, both for WCAG AA:
   `#7A967A`, which is too light to carry text or white button labels. The brand
   sage is still used for fills, tints, icons and glows, where 3:1 applies.
 
-The page is audited with `axe-core` at **0 violations** (WCAG 2.1 A + AA) on
-desktop light, desktop dark and mobile.
-
 ### Brand mark
 
 `public/logo.png` is the app's own icon, derived from `assets/icon.png` in the
@@ -68,32 +65,16 @@ supplies its own 1px one (`border border-transparent` on a filled button),
 because a border participates in the box and a button without one renders 2px
 shorter than the outlined or frosted button beside it.
 
-### Dark mode
+## The page
 
-Driven by a `data-theme` attribute on `<html>`, set before first paint by
-[`components/ui/ThemeScript.tsx`](components/ui/ThemeScript.tsx) so there is no
-theme flash. [`lib/useTheme.ts`](lib/useTheme.ts) reads it through
-`useSyncExternalStore`, treating the DOM as the source of truth. It follows the
-OS until the visitor makes an explicit choice.
+"Through the window" — cinematic, frosted glass over the app's own
+illustrated wallpaper, which is how the product looks once an owner sets a
+background. Everything specific to it is scoped under a `.scene` class.
 
-> The storage key lives in its own module, `lib/themeStorage.ts`, with no
-> `'use client'` directive. Importing a value from a client module into a server
-> component yields a client-reference stub rather than the string, which
-> silently corrupts the inlined script.
-
-## Two variants
-
-| Route | Direction | Ground |
-| --- | --- | --- |
-| `/` | "Quiet paper" — editorial, warm, serif display type | Warm paper, sage accent |
-| `/new` | "Through the window" — cinematic, frosted glass on the app's wallpaper | The illustration, scrimmed |
-
-They share every piece of content, product data and token module, so the two
-cannot drift apart on facts — only the surface treatment differs. Everything
-specific to the scene is scoped under a `.scene` class, so `/` renders exactly
-as it did before the variant existed.
-
-### The scene (`/new`)
+> An earlier editorial "quiet paper" design lived at `/` with a light/dark
+> toggle. It was retired when this one replaced it; `/new`, where this design
+> was previewed, now redirects permanently to `/` (see `next.config.ts`). Both
+> are in git history.
 
 - **One continuous background.** The wallpaper is fixed rather than repeated per
   section, so scrolling reads as moving through a single scene. It drifts at a
@@ -105,15 +86,31 @@ as it did before the variant existed.
   deliberately *not* blurred — leaving it crisp is what sells the frosted
   panels, because then the only blurred thing on screen is what you are looking
   *through*.
-- **Day / Dusk** replaces light/dark. It drives scrim weight rather than
-  flipping a palette, because the type sits on a photograph either way — which
-  is exactly what the app's `WALLPAPER_DIM_OPACITY` does.
+- **No theme toggle.** The type is light on a photograph either way, so a
+  light/dark switch had nothing to flip. The scene uses one fixed scrim
+  (`--scrim: 0.48`), inside the 0.44–0.56 band the contrast was verified
+  across.
 - **A dock, not a header.** On mobile the navigation is a floating glass dock at
   thumb height with five destinations, mirroring the app's five collection tabs.
   An `IntersectionObserver` highlights the section you are actually in, so it
   reports position rather than only offering destinations.
 - **The playground gains a wallpaper dim slider**, the control the background
   makes relevant. Its range is the app's real 0.25–0.75.
+
+- **Glass, not grey boxes.** Every pane layers blur, a wash with baked-in
+  grain, and a *graded* edge ring (`::before`, bright at the top-left bevel,
+  fading along the sides). Panes with `.glass-interactive` also follow the
+  mouse: one delegated listener in `PointerGlow` writes `--mx` / `--my`, which
+  lights the edge in the accent and casts a soft spot across the face. Touch
+  input is ignored.
+- **Frosted notes inside the phone.** With `translucent` set, `AppScreen`
+  draws each thought as a glass card (accent tint over a dark wash, top
+  highlight, a bloom of the note's colour), with a floating glass tab dock and
+  date strip. `PhoneFrame` is a dark graphite chassis, and `WallpaperPhone`
+  casts an accent glow onto the scene.
+- **Hero widgets.** A reminder, a Notion sync pill and the streak float off
+  the device as separate glass panes (`HeroWidgets`). Decorative and
+  `aria-hidden`; hidden on phones, and only the sync pill shows at `lg`.
 
 #### Contrast over a photograph
 
@@ -131,7 +128,7 @@ so the ground is deterministic before any type is drawn:
   404s or is still loading — without it the panes composite against the
   document's paper-white body and the light type becomes unreadable.
 
-axe-core reports **0 violations** on `/new` in both Day and Dusk and on mobile.
+axe-core reported **0 violations** on this design at both ends of the scrim band (0.44 and 0.56) and on mobile.
 It marks 47 nodes *indeterminate* rather than passing them, because it cannot
 compute the luminance of a background image; those were verified by hand
 against the worst-case (brightest) pixel.
@@ -159,7 +156,7 @@ page's own utilities, so a dark phone can sit on a light page.
       Using an image as your own phone wallpaper is not the same as publishing
       it on a public marketing site. Swap both for art you own or have licensed
       before launch — the code takes whatever sits at those two paths.
-- [ ] Decide which variant ships at `/`, and delete or redirect the other.
+- [ ] Re-run the axe-core audit now that the glass design is the only page.
 
 ## Moving this out
 

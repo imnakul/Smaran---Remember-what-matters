@@ -11,6 +11,11 @@ interface WallpaperPhoneProps {
   readonly className?: string;
   /** Scrim over the in-phone wallpaper, mirroring the app's dim setting. */
   readonly dim?: number;
+  /**
+   * Paint every card in `config.accent`. The playground needs this so a colour
+   * pick is visible across the whole list rather than only in the chrome.
+   */
+  readonly lockAccent?: boolean;
 }
 
 /**
@@ -30,20 +35,38 @@ export function WallpaperPhone({
   label,
   className = '',
   dim = 0.5,
+  lockAccent = false,
 }: WallpaperPhoneProps): React.JSX.Element {
   return (
-    <PhoneFrame label={label} className={className}>
-      <Image
-        src="/wallpaper.jpg"
-        alt=""
-        fill
-        sizes="340px"
-        className="object-cover"
+    <div className={`relative w-[min(100%,340px)] ${className}`}>
+      {/*
+        Ambient light from the screen, spilling onto the scene behind the
+        device in the current accent. It is what seats the phone in the
+        picture rather than pasting it on top.
+      */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-[-12%] top-[18%] bottom-[8%] rounded-full opacity-60 blur-3xl transition-colors duration-700"
+        style={{
+          background: `radial-gradient(closest-side, color-mix(in oklab, ${config.accent.accent} 55%, transparent), transparent)`,
+        }}
       />
-      <div className="absolute inset-0 bg-[#060a08]" style={{ opacity: dim }} />
-      <div className="relative h-full">
-        <AppScreen config={config} thoughts={thoughts} activeTab={activeTab} translucent />
-      </div>
-    </PhoneFrame>
+      <PhoneFrame label={label}>
+        <Image src="/wallpaper.jpg" alt="" fill sizes="340px" className="object-cover" />
+        <div
+          className="absolute inset-0 bg-[#060a08] transition-opacity duration-500"
+          style={{ opacity: dim }}
+        />
+        <div className="relative h-full">
+          <AppScreen
+            config={config}
+            thoughts={thoughts}
+            activeTab={activeTab}
+            lockAccent={lockAccent}
+            translucent
+          />
+        </div>
+      </PhoneFrame>
+    </div>
   );
 }

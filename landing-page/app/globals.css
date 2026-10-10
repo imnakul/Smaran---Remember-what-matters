@@ -1,27 +1,19 @@
 @import "tailwindcss";
 
 /*
- * Dark mode is driven by a `data-theme` attribute on <html> rather than the
- * `prefers-color-scheme` media query, because the site offers an explicit
- * toggle. The attribute is set by a blocking script in `app/layout.tsx` before
- * first paint, so there is never a flash of the wrong theme.
- */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-
-/*
  * ---------------------------------------------------------------------------
  * Design tokens, ported 1:1 from the Smaran app.
  *
  * Every value below has a counterpart in the React Native source so the
  * marketing site and the product cannot drift apart:
  *   --paper / --ink / --ink-muted -> src/constants/theme.ts  NEUTRAL.light
- *   --paper-*  (dark values)      -> src/constants/theme.ts  NEUTRAL.dark
  *   --accent                      -> src/constants/theme.ts  THEMES.sage.accent
  *   --radius-*                    -> src/constants/theme.ts  CORNER_RADIUS
  * ---------------------------------------------------------------------------
  */
 :root {
-  color-scheme: light;
+  /* The page is a dimmed photograph throughout, so native UI (scrollbars, form controls) should be dark. */
+  color-scheme: dark;
 
   /* Surfaces */
   --paper: #fdfdf9;
@@ -69,35 +61,6 @@
   --elev-card: 0 1px 2px rgba(45, 45, 45, 0.04), 0 8px 24px -12px rgba(45, 45, 45, 0.12);
   --elev-float: 0 2px 4px rgba(45, 45, 45, 0.04), 0 24px 60px -24px rgba(45, 45, 45, 0.24);
   --elev-device: 0 40px 90px -30px rgba(45, 45, 45, 0.38), 0 12px 28px -12px rgba(45, 45, 45, 0.2);
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-
-  --paper: #141416;
-  --paper-raised: #1f1f23;
-  --paper-sunken: #0e0e10;
-
-  --ink: #f1f1ef;
-  --ink-muted: #9a9a9e;
-
-  --line: rgba(255, 255, 255, 0.1);
-  --line-strong: rgba(255, 255, 255, 0.18);
-  --pill-muted: rgba(255, 255, 255, 0.08);
-
-  --wash: #212b22;
-
-  /*
-   * Inverted for dark: accent text must lighten to clear the dark ground, and
-   * a solid button becomes a light plate carrying dark text.
-   */
-  --accent-strong: #a3bfa3;
-  --accent-solid: #9dba9d;
-  --accent-on-solid: #10140f;
-
-  --elev-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
-  --elev-float: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 60px -24px rgba(0, 0, 0, 0.7);
-  --elev-device: 0 40px 90px -30px rgba(0, 0, 0, 0.8), 0 12px 28px -12px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
@@ -198,29 +161,6 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  [data-theme="dark"] .grain::before {
-    opacity: 0.05;
-  }
-
-  /* Ruled-notebook baseline, used behind editorial blocks. */
-  .ruled {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 2rem,
-      var(--line) 2rem,
-      var(--line) calc(2rem + 1px)
-    );
-  }
-
-  .accent-glow {
-    background: radial-gradient(
-      closest-side,
-      color-mix(in oklab, var(--accent) 36%, transparent),
-      transparent
-    );
-  }
-
   .text-balance {
     text-wrap: balance;
   }
@@ -246,8 +186,14 @@
  * ---------------------------------------------------------------------------
  */
 .scene {
-  /* Dusk: dark enough to carry type, light enough to keep the scene legible. */
-  --scrim: 0.56;
+  /*
+   * One fixed scrim: dark enough to carry type, light enough to keep the scene
+   * legible. It sits inside the 0.44-0.56 band the contrast was verified
+   * across. The scene has no light/dark switch -- the type is light on a
+   * photograph either way, so a theme toggle here changed nothing a visitor
+   * could name.
+   */
+  --scrim: 0.48;
 
   --scene-ink: #f2f5f0;
   --scene-ink-muted: #c6cfc5;
@@ -262,8 +208,17 @@
 
   --glass-bg: rgba(16, 22, 18, 0.42);
   --glass-bg-strong: rgba(14, 19, 16, 0.58);
-  --glass-edge: rgba(255, 255, 255, 0.16);
-  --glass-highlight: rgba(255, 255, 255, 0.22);
+  /*
+   * Kept faint on purpose: the graded ring on `::before` carries the visible
+   * edge, and this only has to hold the outline where that ring fades out.
+   */
+  --glass-edge: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  /*
+   * Grain baked into every pane. The noise tile carries its own low opacity,
+   * because a background image cannot be faded independently of its element.
+   */
+  --glass-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 
   color: var(--scene-ink);
 
@@ -279,39 +234,112 @@
   background-color: #070b09;
 }
 
-/* Day: the lighter scrim. Type stays light; the scrim still carries contrast. */
-:root:not([data-theme="dark"]) .scene {
-  --scrim: 0.44;
-}
 
 @layer utilities {
   /*
    * The glass recipe.
    *
-   * Three layers make a pane read as glass rather than as a grey box: the blur
+   * Four layers make a pane read as glass rather than as a grey box: the blur
    * (what it refracts), the wash (what keeps type legible over busy content),
-   * and the bright hairline plus inner top highlight (the edge, which blur
-   * alone leaves indistinct). The app's `GlassSurface` builds it the same way.
+   * a fine grain baked into the wash (what stops a large pane reading as flat
+   * plastic), and the edge. The edge is the part blur alone leaves indistinct,
+   * so it is drawn twice: a faint 1px border for structure, and a gradient ring
+   * on `::before` that is bright where light would strike the top-left bevel
+   * and fades out along the sides -- a uniform hairline reads as a stroke, a
+   * graded one reads as a thickness. The app's `GlassSurface` builds the same
+   * stack natively.
+   *
+   * `isolation: isolate` gives each pane its own stacking context, so the
+   * pointer spotlight on `::after` can sit at `z-index: -1` -- above the wash,
+   * beneath the content -- without escaping behind the page.
    */
-  .glass {
-    background-color: var(--glass-bg);
-    -webkit-backdrop-filter: blur(24px) saturate(150%);
-    backdrop-filter: blur(24px) saturate(150%);
+  .glass,
+  .glass-strong {
+    position: relative;
+    isolation: isolate;
     border: 1px solid var(--glass-edge);
+    background-image: var(--glass-grain);
     box-shadow:
       inset 0 1px 0 var(--glass-highlight),
-      0 24px 48px -24px rgba(0, 0, 0, 0.7);
+      inset 0 -1px 0 rgba(255, 255, 255, 0.03),
+      0 1px 1px rgba(0, 0, 0, 0.18),
+      0 30px 60px -30px rgba(0, 0, 0, 0.75);
+  }
+
+  .glass {
+    background-color: var(--glass-bg);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
   }
 
   /* For panels carrying long-form copy, where legibility outranks refraction. */
   .glass-strong {
     background-color: var(--glass-bg-strong);
-    -webkit-backdrop-filter: blur(28px) saturate(150%);
-    backdrop-filter: blur(28px) saturate(150%);
-    border: 1px solid var(--glass-edge);
-    box-shadow:
-      inset 0 1px 0 var(--glass-highlight),
-      0 24px 48px -24px rgba(0, 0, 0, 0.7);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    backdrop-filter: blur(30px) saturate(160%);
+  }
+
+  .glass::before,
+  .glass-strong::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        280px circle at var(--mx, -999px) var(--my, -999px),
+        color-mix(in oklab, var(--scene-accent) 70%, white),
+        transparent 70%
+      ),
+      linear-gradient(
+        150deg,
+        rgba(255, 255, 255, 0.38) 0%,
+        rgba(255, 255, 255, 0.08) 22%,
+        rgba(255, 255, 255, 0) 48%,
+        rgba(255, 255, 255, 0.05) 76%,
+        rgba(255, 255, 255, 0.18) 100%
+      );
+    /* Punch out the middle so only a 1px ring of the gradient remains. */
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /*
+   * Panes that respond to the pointer. `PointerGlow` writes the pointer's
+   * position into `--mx` / `--my` on whichever of these is under it; the edge
+   * ring above picks up an accent highlight there, and this layer adds a soft
+   * light across the face. Touch input never sets them, so on a phone the
+   * pane simply stays at rest.
+   */
+  .glass-interactive::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 500ms ease;
+    background: radial-gradient(
+      460px circle at var(--mx, 50%) var(--my, 0%),
+      rgba(255, 255, 255, 0.1),
+      transparent 62%
+    );
+  }
+
+  .glass-interactive:hover::after {
+    opacity: 1;
+  }
+
+  /* Park the ring's highlight off-pane once the pointer leaves. */
+  .glass-interactive:not(:hover)::before {
+    --mx: -999px;
+    --my: -999px;
   }
 
   /*
@@ -334,5 +362,167 @@
       rgba(6, 10, 8, 0.55) 46%,
       rgba(6, 10, 8, 0) 78%
     );
+  }
+
+  /*
+   * A light sweep across a solid button on hover. The band starts parked off
+   * the left edge and travels once; it is clipped by the button's own radius.
+   */
+  .btn-sheen {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .btn-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.85) 48%,
+      transparent 66%
+    );
+    transform: translateX(-120%);
+    transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .btn-sheen:hover::after {
+    transform: translateX(120%);
+  }
+
+  /* Display type lit from above, like lettering standing in the light. */
+  .text-luminous {
+    /*
+     * A text-clipped background only paints inside the element's box, and with
+     * tight display leading the descenders of the last line (g, p, y) hang
+     * below it and get sliced off. The padding extends the painted area to
+     * cover them; the matching negative margin keeps the layout unchanged.
+     */
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
+    background: linear-gradient(180deg, #ffffff 0%, #eef2ec 60%, #d6dfd3 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /*
+   * Range inputs, frosted.
+   *
+   * A native range cannot be styled through utilities alone: its track and
+   * thumb are browser pseudo-elements with vendor-specific names. The filled
+   * portion is a gradient stop driven by `--fill` (0-100%), set by the caller
+   * from the input's own value, so the track reads as a level rather than as a
+   * bare rail.
+   */
+  .scene-range {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 22px;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .scene-range::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      var(--accent) 0%,
+      color-mix(in oklab, var(--accent) 70%, white) var(--fill, 50%),
+      rgba(255, 255, 255, 0.12) var(--fill, 50%)
+    );
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+
+  .scene-range::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+
+  .scene-range::-moz-range-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent) 70%, white));
+  }
+
+  .scene-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -7px;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #dfe6dc 70%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 0 0 5px color-mix(in oklab, var(--accent) 28%, transparent),
+      0 6px 14px -4px rgba(0, 0, 0, 0.8);
+    transition: box-shadow 250ms ease, transform 250ms ease;
+  }
+
+  .scene-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #dfe6dc 70%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 0 0 5px color-mix(in oklab, var(--accent) 28%, transparent),
+      0 6px 14px -4px rgba(0, 0, 0, 0.8);
+  }
+
+  .scene-range:hover::-webkit-slider-thumb,
+  .scene-range:active::-webkit-slider-thumb {
+    transform: scale(1.1);
+    box-shadow:
+      0 0 0 7px color-mix(in oklab, var(--accent) 34%, transparent),
+      0 6px 14px -4px rgba(0, 0, 0, 0.8);
+  }
+
+  .scene-range:focus-visible {
+    outline: none;
+  }
+
+  .scene-range:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid var(--scene-accent);
+    outline-offset: 4px;
+  }
+
+  .scene-range:focus-visible::-moz-range-thumb {
+    outline: 2px solid var(--scene-accent);
+    outline-offset: 4px;
+  }
+
+  /* A live-status dot: a steady core with a ring that breathes outward. */
+  .pulse-dot {
+    position: relative;
+  }
+
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: pulse-ring 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
   }
 }

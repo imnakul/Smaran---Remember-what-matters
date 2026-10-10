@@ -69,7 +69,11 @@ export function SceneYours(): React.JSX.Element {
     dark: true,
   };
 
-  const sliderStyle: ThemedStyle = { '--accent': settings.accent.accent };
+  /** Feeds a range input its accent and how far along its track it sits. */
+  const rangeStyle = (value: number, min: number, max: number): ThemedStyle => ({
+    '--accent': settings.accent.accent,
+    '--fill': `${((value - min) / (max - min)) * 100}%`,
+  });
 
   return (
     <section id="scene-yours" className="relative py-20 sm:py-28 lg:py-32">
@@ -82,7 +86,7 @@ export function SceneYours(): React.JSX.Element {
 
         <div className="mt-14 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-16">
           <Reveal className="order-2 lg:order-1">
-            <Glass tone="strong" className="rounded-round p-6 sm:p-8">
+            <Glass tone="strong" className="glass-interactive rounded-round p-6 sm:p-8">
               {/* Note colour */}
               <fieldset>
                 <legend
@@ -144,8 +148,8 @@ export function SceneYours(): React.JSX.Element {
                     }
                     aria-label="Wallpaper dim strength"
                     aria-valuetext={`${dimLabel(settings.dim)}, ${Math.round(settings.dim * 100)} percent`}
-                    className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-[var(--accent)]"
-                    style={sliderStyle}
+                    className="scene-range w-full"
+                    style={rangeStyle(settings.dim, 0.25, 0.75)}
                   />
                   <span
                     className="font-grotesk w-20 shrink-0 text-right text-[13px] tabular-nums"
@@ -175,8 +179,8 @@ export function SceneYours(): React.JSX.Element {
                       setSettings((prev) => ({ ...prev, cornerRadius: Number(event.target.value) }))
                     }
                     aria-label="Card corner radius in pixels"
-                    className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-[var(--accent)]"
-                    style={sliderStyle}
+                    className="scene-range w-full"
+                    style={rangeStyle(settings.cornerRadius, 0, 32)}
                   />
                   <span
                     className="font-grotesk w-20 shrink-0 text-right text-[13px] tabular-nums"
@@ -211,7 +215,7 @@ export function SceneYours(): React.JSX.Element {
                         <span
                           className={`block rounded-pill border px-4 py-2 text-[13px] transition-all duration-300 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--scene-accent)] ${
                             isActive
-                              ? 'border-transparent bg-[var(--scene-ink)] text-[#0d1410]'
+                              ? 'border-transparent bg-[var(--scene-ink)] text-[#0d1410] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_20px_-10px_rgba(0,0,0,0.9)]'
                               : 'border-white/20 text-[var(--scene-ink-soft)] hover:border-white/40 hover:text-[var(--scene-ink)]'
                           }`}
                         >
@@ -247,7 +251,7 @@ export function SceneYours(): React.JSX.Element {
                         <span
                           className={`block rounded-soft border p-3 transition-all duration-300 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--scene-accent)] ${
                             isActive
-                              ? 'border-[var(--scene-accent)] bg-white/10'
+                              ? 'border-[var(--scene-accent)] bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_0_3px_color-mix(in_oklab,var(--scene-accent)_18%,transparent)]'
                               : 'border-white/15 hover:border-white/30'
                           }`}
                         >
@@ -287,6 +291,7 @@ export function SceneYours(): React.JSX.Element {
               <WallpaperPhone
                 config={previewConfig}
                 dim={settings.dim}
+                lockAccent
                 label="Live preview of the Smaran home screen over a wallpaper, reflecting the options selected on this page"
               />
               <p

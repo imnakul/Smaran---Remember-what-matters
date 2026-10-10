@@ -16,6 +16,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: projectRoot,
   },
+  /*
+   * The glass design was previewed at `/new` before it replaced the original
+   * page. Links shared during that preview keep working.
+   */
+  async redirects() {
+    return [{ source: '/new', destination: '/', permanent: true }];
+  },
 };
 
 export default nextConfig;

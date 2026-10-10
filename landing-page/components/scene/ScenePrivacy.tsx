@@ -62,14 +62,20 @@ export function ScenePrivacy(): React.JSX.Element {
                   className={
                     isAbsent
                       ? 'flex h-full flex-col rounded-round border border-dashed border-white/25 p-6'
-                      : 'glass-strong flex h-full flex-col rounded-round p-6'
+                      : 'glass-strong glass-interactive flex h-full flex-col rounded-round p-6'
                   }
                 >
                   <span
                     className="grid size-11 place-items-center rounded-soft"
                     style={
                       node.tone === 'primary'
-                        ? { background: 'var(--scene-accent)', color: '#0d1410' }
+                        ? {
+                            background:
+                              'linear-gradient(150deg, color-mix(in oklab, var(--scene-accent) 70%, white), var(--scene-accent))',
+                            color: '#0d1410',
+                            boxShadow:
+                              'inset 0 1px 0 rgba(255,255,255,0.5), 0 12px 28px -12px var(--scene-accent)',
+                          }
                         : node.tone === 'optional'
                           ? {
                               background: 'color-mix(in oklab, var(--scene-accent) 22%, transparent)',

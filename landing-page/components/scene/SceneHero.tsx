@@ -7,6 +7,7 @@ import { BRAND, LINKS } from '@/lib/content';
 import { CTA_BASE } from '@/lib/styles';
 import { CORNER_RADIUS, DEFAULT_ACCENT, TYPEFACES } from '@/lib/theme';
 import type { PreviewConfig } from '@/components/mockup/AppScreen';
+import { HeroWidgets } from './HeroWidgets';
 import { WallpaperPhone } from './WallpaperPhone';
 
 /** The phone shows the app over the same wallpaper the page is sitting on. */
@@ -35,7 +36,7 @@ export function SceneHero(): React.JSX.Element {
   return (
     <section
       id="scene-top"
-      className="relative flex min-h-dvh items-center pt-28 pb-24 sm:pt-32 lg:pt-36 lg:pb-32"
+      className="relative flex min-h-dvh items-center overflow-x-clip pt-28 pb-24 sm:pt-32 lg:pt-36 lg:pb-32"
     >
       {/*
         Local scrim. The hero's copy sits on the scene itself rather than on a
@@ -46,15 +47,33 @@ export function SceneHero(): React.JSX.Element {
 
       <div className="relative mx-auto grid w-full max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1.05fr_minmax(0,0.95fr)] lg:gap-10 lg:px-8">
         <div className="max-w-xl">
+          <motion.p {...rise(0)} className="mb-7 inline-flex">
+            <span className="glass inline-flex items-center gap-2.5 rounded-full py-1.5 pr-4 pl-1.5 text-[12px]">
+              <span
+                className="font-grotesk rounded-full px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] text-[#0d1410] uppercase"
+                style={{ background: 'var(--scene-accent)' }}
+              >
+                v{BRAND.version}
+              </span>
+              <span style={{ color: 'var(--scene-ink-soft)' }}>Two-way Notion sync, on your wallpaper</span>
+            </span>
+          </motion.p>
+
           <motion.h1
-            {...rise(0)}
+            {...rise(0.06)}
             className="font-display text-[2.7rem] leading-[1.04] tracking-tight text-balance sm:text-6xl lg:text-[4.2rem]"
           >
-            A quiet place
+            {/*
+              The gradient fill is on inner spans, not the heading: a clipped
+              background on the <h1> would also clip the hand-drawn underline.
+            */}
+            <span className="text-luminous">
+              A quiet place
+              <br />
+              for the thoughts
+            </span>
             <br />
-            for the thoughts
-            <br />
-            <span className="relative inline-block">
+            <span className="relative inline-block italic" style={{ color: 'var(--scene-accent)' }}>
               you keep.
               <svg
                 aria-hidden
@@ -82,14 +101,18 @@ export function SceneHero(): React.JSX.Element {
             className="mt-7 max-w-lg text-base leading-relaxed text-pretty sm:text-lg"
             style={{ color: 'var(--scene-ink-muted)' }}
           >
-            Set your own wallpaper, and {BRAND.name} becomes part of it — frosted cards
-            over a view you chose. Five collections, no inbox, no account.
+            The app for everything worth remembering —{' '}
+            <span className="text-[var(--scene-ink)]">reminders</span> you can&rsquo;t miss,{' '}
+            <span className="text-[var(--scene-ink)]">lessons</span> you&rsquo;ve learned,{' '}
+            <span className="text-[var(--scene-ink)]">blessings</span> you&rsquo;re grateful for and{' '}
+            <span className="text-[var(--scene-ink)]">sayings</span> you live by. Each in its own
+            space, brought back right when it matters. Private, offline and free.
           </motion.p>
 
           <motion.div {...rise(0.24)} className="mt-9 flex flex-wrap items-center gap-3">
             <a
               href={LINKS.playStore}
-              className={`${CTA_BASE} border border-transparent bg-[var(--scene-ink)] px-6 text-[#0d1410] shadow-[0_18px_40px_-18px_rgba(0,0,0,0.9)] hover:-translate-y-0.5`}
+              className={`${CTA_BASE} btn-sheen border border-transparent bg-[var(--scene-ink)] px-6 text-[#0d1410] shadow-[0_18px_40px_-18px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.9)] hover:-translate-y-0.5`}
             >
               <Download
                 className="size-4 transition-transform duration-300 group-hover:translate-y-0.5"
@@ -128,22 +151,31 @@ export function SceneHero(): React.JSX.Element {
           </motion.ul>
         </div>
 
-        <motion.div
-          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 44, rotate: -3 }}
-          animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0, rotate: -2.5 }}
-          transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="flex justify-center lg:justify-end"
-        >
-          <motion.div
-            animate={prefersReducedMotion ? undefined : { y: [0, -14, 0] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <WallpaperPhone
-              config={HERO_CONFIG}
-              label={`${BRAND.name} home screen over a personal wallpaper, with frosted cards`}
-            />
-          </motion.div>
-        </motion.div>
+        <div className="flex justify-center lg:justify-end lg:pr-24">
+          {/*
+            The widgets sit on this un-rotated wrapper rather than inside the
+            tilted phone, so they float level in the scene while the device
+            leans -- two planes of depth instead of one.
+          */}
+          <div className="relative w-[min(100%,340px)]">
+            <motion.div
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 44, rotate: -3 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0, rotate: -2.5 }}
+              transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <motion.div
+                animate={prefersReducedMotion ? undefined : { y: [0, -14, 0] }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <WallpaperPhone
+                  config={HERO_CONFIG}
+                  label={`${BRAND.name} home screen over a personal wallpaper, with frosted cards`}
+                />
+              </motion.div>
+            </motion.div>
+            <HeroWidgets />
+          </div>
+        </div>
       </div>
     </section>
   );

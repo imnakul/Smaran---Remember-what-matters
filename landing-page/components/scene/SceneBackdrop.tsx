@@ -47,7 +47,7 @@ export function SceneBackdrop(): React.JSX.Element {
         />
       </motion.div>
 
-      {/* Base scrim. Opacity is driven by the Day/Dusk control. */}
+      {/* Base scrim. Its weight is the fixed `--scrim` token in globals.css. */}
       <div className="absolute inset-0 bg-[#060a08] transition-opacity duration-700" style={scrimStyle} />
 
       {/* Vignette, so the corners settle and the centre stays the subject. */}
