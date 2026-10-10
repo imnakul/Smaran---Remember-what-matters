@@ -3,7 +3,6 @@ import { Lora, Plus_Jakarta_Sans, Caveat, Space_Grotesk } from 'next/font/google
 import type { ReactNode } from 'react';
 
 import { BRAND } from '@/lib/content';
-import { ThemeScript } from '@/components/ui/ThemeScript';
 
 import './globals.css';
 
@@ -41,7 +40,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 const DESCRIPTION =
-  'Smaran is a calm, local-first Android app for the thoughts you want to keep returning to. Five collections, two-way Notion sync, a PIN lock, and theming down to the corner radius.';
+  'Smaran is the app for everything worth remembering: reminders, learnings, blessings and sayings, each in its own collection and brought back when it matters. Private, offline, free, with two-way Notion sync.';
 
 export const metadata: Metadata = {
   // TODO: point this at the real domain once the site is deployed.
@@ -77,10 +76,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FDFDF9' },
-    { media: '(prefers-color-scheme: dark)', color: '#141416' },
-  ],
+  // Matches the scene's opaque ground, so mobile browser chrome blends into the page.
+  themeColor: '#070B09',
   width: 'device-width',
   initialScale: 1,
 };
@@ -93,18 +90,10 @@ export default function RootLayout({ children }: RootLayoutProps): React.JSX.Ele
   return (
     <html
       lang="en"
-      /*
-       * `suppressHydrationWarning` is required and safe here: ThemeScript sets
-       * `data-theme` on this element before React hydrates, so the server HTML
-       * and the client DOM legitimately differ by that one attribute.
-       */
-      suppressHydrationWarning
       className={`${lora.variable} ${jakarta.variable} ${caveat.variable} ${spaceGrotesk.variable}`}
     >
-      <head>
-        <ThemeScript />
-      </head>
-      <body className="min-h-dvh bg-paper text-ink antialiased">{children}</body>
+      {/* The scene's own dark ground, so overscroll and first paint never flash white. */}
+      <body className="min-h-dvh bg-[#070b09] text-ink antialiased">{children}</body>
     </html>
   );
 }

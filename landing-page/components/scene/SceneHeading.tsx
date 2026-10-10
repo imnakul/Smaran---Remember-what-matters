@@ -10,11 +10,10 @@ interface SceneHeadingProps {
 }
 
 /**
- * Section heading for the scene variant.
+ * Section heading: a frosted eyebrow pill, a lit display title and a lede.
  *
- * Separate from the editorial page's `SectionHeading` because the colour
- * roles invert here: type is light on a dark ground, and the accent has to be
- * the lifted sage rather than the deep one.
+ * Type is light on a dark ground here, so the accent is the lifted sage
+ * (`--scene-accent`) rather than the deep brand one.
  */
 export function SceneHeading({
   eyebrow,

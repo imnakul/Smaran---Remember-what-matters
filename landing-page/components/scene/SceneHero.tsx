@@ -101,8 +101,12 @@ export function SceneHero(): React.JSX.Element {
             className="mt-7 max-w-lg text-base leading-relaxed text-pretty sm:text-lg"
             style={{ color: 'var(--scene-ink-muted)' }}
           >
-            Set your own wallpaper, and {BRAND.name} becomes part of it — frosted cards
-            over a view you chose. Five collections, no inbox, no account.
+            The app for everything worth remembering —{' '}
+            <span className="text-[var(--scene-ink)]">reminders</span> you can&rsquo;t miss,{' '}
+            <span className="text-[var(--scene-ink)]">lessons</span> you&rsquo;ve learned,{' '}
+            <span className="text-[var(--scene-ink)]">blessings</span> you&rsquo;re grateful for and{' '}
+            <span className="text-[var(--scene-ink)]">sayings</span> you live by. Each in its own
+            space, brought back right when it matters. Private, offline and free.
           </motion.p>
 
           <motion.div {...rise(0.24)} className="mt-9 flex flex-wrap items-center gap-3">

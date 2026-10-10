@@ -1,27 +1,19 @@
 @import "tailwindcss";
 
 /*
- * Dark mode is driven by a `data-theme` attribute on <html> rather than the
- * `prefers-color-scheme` media query, because the site offers an explicit
- * toggle. The attribute is set by a blocking script in `app/layout.tsx` before
- * first paint, so there is never a flash of the wrong theme.
- */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-
-/*
  * ---------------------------------------------------------------------------
  * Design tokens, ported 1:1 from the Smaran app.
  *
  * Every value below has a counterpart in the React Native source so the
  * marketing site and the product cannot drift apart:
  *   --paper / --ink / --ink-muted -> src/constants/theme.ts  NEUTRAL.light
- *   --paper-*  (dark values)      -> src/constants/theme.ts  NEUTRAL.dark
  *   --accent                      -> src/constants/theme.ts  THEMES.sage.accent
  *   --radius-*                    -> src/constants/theme.ts  CORNER_RADIUS
  * ---------------------------------------------------------------------------
  */
 :root {
-  color-scheme: light;
+  /* The page is a dimmed photograph throughout, so native UI (scrollbars, form controls) should be dark. */
+  color-scheme: dark;
 
   /* Surfaces */
   --paper: #fdfdf9;
@@ -69,35 +61,6 @@
   --elev-card: 0 1px 2px rgba(45, 45, 45, 0.04), 0 8px 24px -12px rgba(45, 45, 45, 0.12);
   --elev-float: 0 2px 4px rgba(45, 45, 45, 0.04), 0 24px 60px -24px rgba(45, 45, 45, 0.24);
   --elev-device: 0 40px 90px -30px rgba(45, 45, 45, 0.38), 0 12px 28px -12px rgba(45, 45, 45, 0.2);
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-
-  --paper: #141416;
-  --paper-raised: #1f1f23;
-  --paper-sunken: #0e0e10;
-
-  --ink: #f1f1ef;
-  --ink-muted: #9a9a9e;
-
-  --line: rgba(255, 255, 255, 0.1);
-  --line-strong: rgba(255, 255, 255, 0.18);
-  --pill-muted: rgba(255, 255, 255, 0.08);
-
-  --wash: #212b22;
-
-  /*
-   * Inverted for dark: accent text must lighten to clear the dark ground, and
-   * a solid button becomes a light plate carrying dark text.
-   */
-  --accent-strong: #a3bfa3;
-  --accent-solid: #9dba9d;
-  --accent-on-solid: #10140f;
-
-  --elev-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
-  --elev-float: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 60px -24px rgba(0, 0, 0, 0.7);
-  --elev-device: 0 40px 90px -30px rgba(0, 0, 0, 0.8), 0 12px 28px -12px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
@@ -198,29 +161,6 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  [data-theme="dark"] .grain::before {
-    opacity: 0.05;
-  }
-
-  /* Ruled-notebook baseline, used behind editorial blocks. */
-  .ruled {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 2rem,
-      var(--line) 2rem,
-      var(--line) calc(2rem + 1px)
-    );
-  }
-
-  .accent-glow {
-    background: radial-gradient(
-      closest-side,
-      color-mix(in oklab, var(--accent) 36%, transparent),
-      transparent
-    );
-  }
-
   .text-balance {
     text-wrap: balance;
   }
@@ -246,8 +186,14 @@
  * ---------------------------------------------------------------------------
  */
 .scene {
-  /* Dusk: dark enough to carry type, light enough to keep the scene legible. */
-  --scrim: 0.56;
+  /*
+   * One fixed scrim: dark enough to carry type, light enough to keep the scene
+   * legible. It sits inside the 0.44-0.56 band the contrast was verified
+   * across. The scene has no light/dark switch -- the type is light on a
+   * photograph either way, so a theme toggle here changed nothing a visitor
+   * could name.
+   */
+  --scrim: 0.48;
 
   --scene-ink: #f2f5f0;
   --scene-ink-muted: #c6cfc5;
@@ -288,10 +234,6 @@
   background-color: #070b09;
 }
 
-/* Day: the lighter scrim. Type stays light; the scrim still carries contrast. */
-:root:not([data-theme="dark"]) .scene {
-  --scrim: 0.44;
-}
 
 @layer utilities {
   /*
@@ -454,6 +396,14 @@
 
   /* Display type lit from above, like lettering standing in the light. */
   .text-luminous {
+    /*
+     * A text-clipped background only paints inside the element's box, and with
+     * tight display leading the descenders of the last line (g, p, y) hang
+     * below it and get sliced off. The padding extends the painted area to
+     * cover them; the matching negative margin keeps the layout unchanged.
+     */
+    padding-bottom: 0.18em;
+    margin-bottom: -0.18em;
     background: linear-gradient(180deg, #ffffff 0%, #eef2ec 60%, #d6dfd3 100%);
     -webkit-background-clip: text;
     background-clip: text;

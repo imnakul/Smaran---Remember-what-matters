@@ -51,7 +51,7 @@ export function WallpaperPhone({
           background: `radial-gradient(closest-side, color-mix(in oklab, ${config.accent.accent} 55%, transparent), transparent)`,
         }}
       />
-      <PhoneFrame label={label} finish="graphite">
+      <PhoneFrame label={label}>
         <Image src="/wallpaper.jpg" alt="" fill sizes="340px" className="object-cover" />
         <div
           className="absolute inset-0 bg-[#060a08] transition-opacity duration-500"
