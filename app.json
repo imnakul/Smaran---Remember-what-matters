@@ -2,7 +2,7 @@
   "expo": {
     "name": "Smaran",
     "slug": "Remember",
-    "version": "1.2.2",
+    "version": "1.3.0",
     "scheme": "remember-app",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,14 +12,17 @@
     },
     "android": {
       "package": "com.remember.app",
-      "versionCode": 5,
+      "versionCode": 10300,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -46,10 +49,13 @@
       [
         "expo-share-intent",
         {
-          "androidIntentFilters": ["text/*"],
+          "androidIntentFilters": [
+            "text/*"
+          ],
           "disableIOS": true
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ]
   }
 }

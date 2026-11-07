@@ -23,6 +23,7 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
+import { AppUpdateCard } from './AppUpdateCard';
 import {
   X,
   Moon,
@@ -1715,6 +1716,8 @@ export function SettingsModal({
                       </Text>
                     </Pressable>
                   )}
+
+                  <AppUpdateCard />
                 </View>
               )}
 

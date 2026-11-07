@@ -1,0 +1,88 @@
+# Builds a signed APK and publishes it as a GitHub Release when a version tag
+# is pushed:
+#
+#   git tag v1.3.0 && git push origin v1.3.0
+#
+# The in-app "Check for updates" reads the latest release from this repo.
+
+name: Release APK
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        # react-dom (web-only, pulled in by expo-router) has a peer mismatch
+        # with react; it never ships in the Android bundle.
+        run: npm ci --legacy-peer-deps
+
+      - name: Stamp version from tag
+        run: node scripts/set-version.js "${GITHUB_REF_NAME}"
+
+      - name: Generate native project
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Restore signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is missing"; exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          ORG_GRADLE_PROJECT_SMARAN_UPLOAD_STORE_FILE: ${{ runner.temp }}/release.jks
+          ORG_GRADLE_PROJECT_SMARAN_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_SMARAN_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_SMARAN_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Verify signature
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | tee signers.txt
+          if grep -q "CN=Android Debug" signers.txt; then
+            echo "::error::APK is signed with the debug key"; exit 1
+          fi
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk "Smaran-${GITHUB_REF_NAME}.apk"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Smaran-${{ github.ref_name }}.apk
+          generate_release_notes: true
+
+      - name: Clean up signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
