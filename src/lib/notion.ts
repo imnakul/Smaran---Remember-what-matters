@@ -695,6 +695,23 @@ export async function createAllDatabases(
   return createdMap as Record<CollectionId, string>;
 }
 
+/** Creates only the collections absent from `existing`, returning the merged map. */
+export async function createMissingDatabases(
+  parentPageId: string,
+  existing: Partial<Record<CollectionId, string>>
+): Promise<Partial<Record<CollectionId, string>>> {
+  const merged = { ...existing };
+  for (const collection of COLLECTIONS) {
+    if (merged[collection.id]) continue;
+    merged[collection.id] = await createDatabase(
+      parentPageId,
+      collection.notionTitle,
+      COLLECTION_ICONS[collection.id]
+    );
+  }
+  return merged;
+}
+
 /**
  * Looks up the parent page ID of an existing Notion database so sibling databases
  * can be provisioned in the same page.
@@ -712,6 +729,189 @@ export async function getDatabaseParentPageId(databaseId: string): Promise<strin
   } catch {
     return null;
   }
+}
+
+/* ---------------------------- existing databases --------------------------- */
+
+export type CollectionDatabaseMap = Partial<Record<CollectionId, string>>;
+
+interface DatabaseCandidate {
+  id: string;
+  title: string;
+}
+
+interface BlockChildrenResponse {
+  results: Array<{
+    id: string;
+    type?: string;
+    in_trash?: boolean;
+    archived?: boolean;
+    child_database?: { title?: string };
+  }>;
+  has_more: boolean;
+  next_cursor: string | null;
+}
+
+/** Upper bound on child-block pages read from one parent page. */
+const MAX_CHILD_PAGES = 5;
+
+/** Databases sitting directly inside a page, read from its child blocks. */
+async function listChildDatabases(pageId: string): Promise<DatabaseCandidate[]> {
+  const found: DatabaseCandidate[] = [];
+  let cursor: string | null = null;
+
+  for (let i = 0; i < MAX_CHILD_PAGES; i++) {
+    const query = `page_size=${PAGE_SIZE}${cursor ? `&start_cursor=${cursor}` : ''}`;
+    const response: BlockChildrenResponse = await request<BlockChildrenResponse>(
+      `/blocks/${pageId}/children?${query}`,
+      { method: 'GET' }
+    );
+    for (const block of response.results) {
+      if (block.type !== 'child_database' || block.in_trash || block.archived) continue;
+      // A child_database block's id is the database id.
+      found.push({ id: block.id, title: block.child_database?.title ?? '' });
+    }
+    if (!response.has_more || !response.next_cursor) break;
+    cursor = response.next_cursor;
+  }
+
+  return found;
+}
+
+function normalizeTitle(title: string): string {
+  return title.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function collectionForTitle(title: string): CollectionId | null {
+  const normalized = normalizeTitle(title);
+  const match = COLLECTIONS.find(c => normalizeTitle(c.notionTitle) === normalized);
+  return match ? match.id : null;
+}
+
+interface DatabaseInspection {
+  id: string;
+  hasRows: boolean;
+  createdTime: number;
+  parentPageId: string | null;
+}
+
+/**
+ * Checks that a database was made by (or already synced with) this app, and
+ * whether it holds any rows. Returns null for anything that does not carry the
+ * App ID column, so an unrelated database that merely shares a name is skipped.
+ */
+async function inspectDatabase(databaseId: string): Promise<DatabaseInspection | null> {
+  try {
+    const database = await request<{
+      id: string;
+      created_time?: string;
+      in_trash?: boolean;
+      archived?: boolean;
+      parent?: { type?: string; page_id?: string };
+      data_sources?: Array<{ id: string }>;
+    }>(`/databases/${databaseId}`, { method: 'GET' });
+    if (database.in_trash || database.archived) return null;
+
+    const dataSourceId = database.data_sources?.[0]?.id;
+    if (!dataSourceId) return null;
+
+    const source = await request<DataSourceResponse>(`/data_sources/${dataSourceId}`, { method: 'GET' });
+    if (!(PROPS.appId in source.properties)) return null;
+
+    const sample = await request<QueryResponse>(`/data_sources/${dataSourceId}/query`, {
+      method: 'POST',
+      body: { page_size: 1 },
+    });
+
+    return {
+      id: databaseId,
+      hasRows: sample.results.length > 0,
+      createdTime: database.created_time ? Date.parse(database.created_time) : Number.MAX_SAFE_INTEGER,
+      parentPageId: database.parent?.type === 'page_id' ? database.parent.page_id ?? null : null,
+    };
+  } catch (error) {
+    // Auth and network failures should reach the user; a single unreadable
+    // database should not sink the whole scan.
+    if (error instanceof NotionError && (error.kind === 'unauthorized' || error.kind === 'network' || error.kind === 'no-token')) {
+      throw error;
+    }
+    return null;
+  }
+}
+
+/**
+ * Picks one database per collection out of name-matched candidates.
+ *
+ * Duplicates are expected -- an earlier setup may have created a second, empty
+ * set beside the real one -- so a database that already has rows wins, and
+ * among equals the oldest wins, since the original is the one holding history.
+ */
+async function matchCollections(
+  candidates: DatabaseCandidate[]
+): Promise<{ map: CollectionDatabaseMap; parentPageIds: string[] }> {
+  const byCollection = new Map<CollectionId, string[]>();
+  for (const candidate of candidates) {
+    const collection = collectionForTitle(candidate.title);
+    if (!collection) continue;
+    const ids = byCollection.get(collection) ?? [];
+    if (!ids.includes(candidate.id)) ids.push(candidate.id);
+    byCollection.set(collection, ids);
+  }
+
+  const map: CollectionDatabaseMap = {};
+  const parentPageIds = new Set<string>();
+
+  // Sequential on purpose: Notion allows roughly three requests a second.
+  for (const [collection, ids] of byCollection) {
+    const inspected: DatabaseInspection[] = [];
+    for (const id of ids) {
+      const result = await inspectDatabase(id);
+      if (result) inspected.push(result);
+    }
+    if (inspected.length === 0) continue;
+
+    inspected.sort((a, b) => {
+      if (a.hasRows !== b.hasRows) return a.hasRows ? -1 : 1;
+      return a.createdTime - b.createdTime;
+    });
+    map[collection] = inspected[0].id;
+    if (inspected[0].parentPageId) parentPageIds.add(inspected[0].parentPageId);
+  }
+
+  return { map, parentPageIds: [...parentPageIds] };
+}
+
+/** Finds this app's databases already living inside a given page. */
+export async function findExistingInPage(pageId: string): Promise<CollectionDatabaseMap> {
+  const { map } = await matchCollections(await listChildDatabases(pageId));
+  return map;
+}
+
+/**
+ * Finds this app's databases anywhere the integration can see.
+ *
+ * Search titles come from data sources, which may not always mirror the
+ * database name, so once any match is found its parent page is also scanned
+ * directly to pick up siblings that search missed.
+ */
+export async function findExistingInWorkspace(): Promise<CollectionDatabaseMap> {
+  const fromSearch = await matchCollections(await listDatabases());
+  const map: CollectionDatabaseMap = { ...fromSearch.map };
+
+  const missing = () => COLLECTIONS.some(c => !map[c.id]);
+  for (const parentPageId of fromSearch.parentPageIds) {
+    if (!missing()) break;
+    try {
+      const fromPage = await findExistingInPage(parentPageId);
+      for (const collection of COLLECTIONS) {
+        if (!map[collection.id] && fromPage[collection.id]) map[collection.id] = fromPage[collection.id];
+      }
+    } catch (error) {
+      if (error instanceof NotionError && error.kind !== 'not-found') throw error;
+    }
+  }
+
+  return map;
 }
 
 /** Verifies the stored token by hitting an endpoint that needs no extra scope. */

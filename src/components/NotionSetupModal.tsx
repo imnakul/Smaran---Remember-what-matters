@@ -12,13 +12,15 @@ import { useSettings } from '../context/SettingsContext';
 import { useSync } from '../context/SyncContext';
 import { useConnectivity } from '../context/ConnectivityContext';
 import {
+  CollectionDatabaseMap,
   NotionDatabaseOption,
   NotionPageOption,
   clearToken,
-  createDatabase,
-  createAllDatabases,
+  createMissingDatabases,
   getDatabaseParentPageId,
   describeNotionError,
+  findExistingInPage,
+  findExistingInWorkspace,
   getToken,
   listDatabases,
   listParentPages,
@@ -26,7 +28,7 @@ import {
   setToken,
   verifyToken,
 } from '../lib/notion';
-import { invalidateTargetCache } from '../lib/notionSync';
+import { detachCollection, invalidateTargetCache, waitForSyncIdle } from '../lib/notionSync';
 import { useTypeface } from '../hooks/useTypeface';
 
 interface NotionSetupModalProps {
@@ -51,6 +53,10 @@ function looksLikeToken(value: string): boolean {
   return value.trim().length >= 40;
 }
 
+function labelsFor(ids: CollectionId[]): string {
+  return ids.map(id => COLLECTIONS.find(c => c.id === id)?.label ?? id).join(', ');
+}
+
 export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
   const typeface = useTypeface();
   const { settings, updateSettings } = useSettings();
@@ -66,6 +72,56 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
   const [linkInput, setLinkInput] = useState('');
   const [isWorking, setIsWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  /** The app's own databases found anywhere in the workspace. */
+  const [detected, setDetected] = useState<CollectionDatabaseMap | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+  /** A chosen page that already holds some of the app's databases. */
+  const [pagePlan, setPagePlan] = useState<{ page: NotionPageOption; found: CollectionDatabaseMap } | null>(null);
+
+  /** What each collection is linked to right now, folding in the legacy single id. */
+  const currentLinks = useCallback((): CollectionDatabaseMap => {
+    const links: CollectionDatabaseMap = { ...(settings.notionDatabaseIds ?? {}) };
+    if (!links.remember && settings.notionDatabaseId) links.remember = settings.notionDatabaseId;
+    return links;
+  }, [settings.notionDatabaseIds, settings.notionDatabaseId]);
+
+  /** Collections whose link `map` would change. */
+  const changesFrom = useCallback(
+    (map: CollectionDatabaseMap): CollectionId[] => {
+      const links = currentLinks();
+      return COLLECTIONS.map(c => c.id).filter(id => map[id] && map[id] !== links[id]);
+    },
+    [currentLinks]
+  );
+
+  /**
+   * Points collections at new databases. The sync itself is left to SyncContext,
+   * which reruns whenever the linked ids change -- calling syncNow here would run
+   * with the previous targets captured in its closure.
+   */
+  const applyLinks = useCallback(
+    async (map: CollectionDatabaseMap) => {
+      const changed = changesFrom(map);
+      if (changed.length === 0) return;
+
+      // A pass still running against the old databases must finish before page
+      // ids are cleared, or it would push every thought into the old ones.
+      await waitForSyncIdle();
+      const links = currentLinks();
+      for (const id of changed) {
+        await detachCollection(id);
+        links[id] = map[id];
+      }
+
+      invalidateTargetCache();
+      updateSettings({
+        notionDatabaseIds: links,
+        notionDatabaseId: links.remember,
+        notionEnabled: true,
+      });
+    },
+    [changesFrom, currentLinks, updateSettings]
+  );
 
   const loadDatabases = useCallback(async () => {
     setIsWorking(true);
@@ -83,6 +139,18 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
     }
   }, []);
 
+  const detectExisting = useCallback(async () => {
+    setIsDetecting(true);
+    try {
+      setDetected(await findExistingInWorkspace());
+    } catch {
+      // Detection is a convenience; the manual paths below still work.
+      setDetected(null);
+    } finally {
+      setIsDetecting(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!visible) return;
     setMessage(null);
@@ -90,12 +158,17 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
     setLinkInput('');
     setParentPages(null);
     setLinkingCollection(null);
+    setPagePlan(null);
+    setDetected(null);
     getToken().then(token => {
       const stored = Boolean(token);
       setHasStoredToken(stored);
-      if (stored && isOnline) void loadDatabases();
+      if (stored && isOnline) {
+        void loadDatabases();
+        void detectExisting();
+      }
     });
-  }, [visible, isOnline, loadDatabases]);
+  }, [visible, isOnline, loadDatabases, detectExisting]);
 
   const handleSaveToken = useCallback(async () => {
     const value = tokenInput.trim();
@@ -114,6 +187,7 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
       setTokenInput('');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await loadDatabases();
+      void detectExisting();
     } catch (error) {
       await clearToken();
       setHasStoredToken(false);
@@ -122,36 +196,33 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
     } finally {
       setIsWorking(false);
     }
-  }, [tokenInput, loadDatabases]);
+  }, [tokenInput, loadDatabases, detectExisting]);
 
   const handlePickDatabase = useCallback(
     async (option: NotionDatabaseOption, targetCol: CollectionId = 'remember') => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      invalidateTargetCache();
-      const currentMap = { ...(settings.notionDatabaseIds ?? {}) };
-      currentMap[targetCol] = option.id;
-      if (targetCol === 'remember') {
-        updateSettings({
-          notionDatabaseId: option.id,
-          notionDatabaseIds: currentMap,
-          notionEnabled: true,
-        });
-      } else {
-        updateSettings({
-          notionDatabaseIds: currentMap,
-          notionEnabled: true,
-        });
-      }
+      await applyLinks({ [targetCol]: option.id });
       setLinkingCollection(null);
       setMessage(null);
-      await syncNow();
     },
-    [settings.notionDatabaseIds, updateSettings, syncNow]
+    [applyLinks]
   );
+
+  const handleLinkDetected = useCallback(async () => {
+    if (!detected) return;
+    setIsWorking(true);
+    try {
+      await applyLinks(detected);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } finally {
+      setIsWorking(false);
+    }
+  }, [detected, applyLinks]);
 
   const startCreateFlow = useCallback(async () => {
     setIsWorking(true);
     setMessage(null);
+    setPagePlan(null);
     try {
       const pages = await listParentPages();
       setParentPages(pages);
@@ -165,23 +236,18 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
     }
   }, []);
 
-  const handleCreateAllDatabases = useCallback(
-    async (page: NotionPageOption) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  /** Links what `found` already covers and creates the rest inside `pageId`. */
+  const linkAndCreateMissing = useCallback(
+    async (pageId: string, found: CollectionDatabaseMap) => {
       setIsWorking(true);
       setMessage(null);
       try {
-        const createdMap = await createAllDatabases(page.id);
-        invalidateTargetCache();
-        updateSettings({
-          notionDatabaseId: createdMap.remember,
-          notionDatabaseIds: createdMap,
-          notionEnabled: true,
-        });
+        const merged = await createMissingDatabases(pageId, found);
+        await applyLinks(merged);
         setParentPages(null);
+        setPagePlan(null);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         await loadDatabases();
-        await syncNow();
       } catch (error) {
         setMessage(describeNotionError(error));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -189,7 +255,57 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
         setIsWorking(false);
       }
     },
-    [updateSettings, loadDatabases, syncNow]
+    [applyLinks, loadDatabases]
+  );
+
+  const handleLinkFoundOnly = useCallback(async () => {
+    if (!pagePlan) return;
+    setIsWorking(true);
+    try {
+      await applyLinks(pagePlan.found);
+      setPagePlan(null);
+      setParentPages(null);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } finally {
+      setIsWorking(false);
+    }
+  }, [pagePlan, applyLinks]);
+
+  /**
+   * A page was chosen, by link or from the list. Look inside it first: on a new
+   * device it usually already holds the databases, and creating a fresh set
+   * would leave the user staring at empty tabs.
+   */
+  const handleChoosePage = useCallback(
+    async (page: NotionPageOption) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setIsWorking(true);
+      setMessage(null);
+      let found: CollectionDatabaseMap;
+      try {
+        found = await findExistingInPage(page.id);
+      } catch (error) {
+        setMessage(describeNotionError(error));
+        return;
+      } finally {
+        setIsWorking(false);
+      }
+
+      if (Object.keys(found).length > 0) {
+        setPagePlan({ page, found });
+        return;
+      }
+
+      Alert.alert(
+        'Create databases?',
+        `No existing databases were found in "${page.title}". Create all 5 (${labelsFor(COLLECTIONS.map(c => c.id))}) there?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Create', onPress: () => void linkAndCreateMissing(page.id, {}) },
+        ]
+      );
+    },
+    [linkAndCreateMissing]
   );
 
   const handleAutoProvisionMissing = useCallback(async () => {
@@ -197,28 +313,16 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
     setMessage(null);
     try {
       const existingDbId = settings.notionDatabaseIds?.remember ?? settings.notionDatabaseId;
-      let parentPageId: string | null = null;
-      if (existingDbId) {
-        parentPageId = await getDatabaseParentPageId(existingDbId);
-      }
+      const parentPageId = existingDbId ? await getDatabaseParentPageId(existingDbId) : null;
 
       if (parentPageId) {
-        const currentMap = { ...(settings.notionDatabaseIds ?? {}) };
+        // Link siblings that already exist before creating anything new.
+        const found = await findExistingInPage(parentPageId);
+        const base = currentLinks();
         for (const col of COLLECTIONS) {
-          if (!currentMap[col.id]) {
-            const dbId = await createDatabase(parentPageId, col.notionTitle);
-            currentMap[col.id] = dbId;
-          }
+          if (!base[col.id] && found[col.id]) base[col.id] = found[col.id];
         }
-        invalidateTargetCache();
-        updateSettings({
-          notionDatabaseIds: currentMap,
-          notionDatabaseId: currentMap.remember ?? settings.notionDatabaseId,
-          notionEnabled: true,
-        });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        await loadDatabases();
-        await syncNow();
+        await linkAndCreateMissing(parentPageId, base);
       } else {
         await startCreateFlow();
       }
@@ -228,31 +332,33 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
     } finally {
       setIsWorking(false);
     }
-  }, [settings.notionDatabaseIds, settings.notionDatabaseId, updateSettings, loadDatabases, syncNow, startCreateFlow]);
+  }, [settings.notionDatabaseIds, settings.notionDatabaseId, currentLinks, linkAndCreateMissing, startCreateFlow]);
 
   const handleUseLink = useCallback(async () => {
     setIsWorking(true);
     setMessage(null);
+    let target: Awaited<ReturnType<typeof resolveNotionLink>>;
     try {
-      const target = await resolveNotionLink(linkInput);
-
-      if (target.kind === 'database') {
-        const colToUse = linkingCollection ?? 'remember';
-        await handlePickDatabase({ id: target.id, title: 'Linked Database' }, colToUse);
-      } else {
-        // Page target -> create all 5 databases inside this page
-        await handleCreateAllDatabases({ id: target.id, title: target.title });
-      }
-
-      setLinkInput('');
-      setParentPages(null);
+      target = await resolveNotionLink(linkInput);
     } catch (error) {
       setMessage(describeNotionError(error));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
       setIsWorking(false);
+      return;
     }
-  }, [linkInput, linkingCollection, handlePickDatabase, handleCreateAllDatabases]);
+    setIsWorking(false);
+    setLinkInput('');
+    setParentPages(null);
+
+    if (target.kind === 'database') {
+      await handlePickDatabase({ id: target.id, title: 'Linked Database' }, linkingCollection ?? 'remember');
+    } else {
+      await handleChoosePage({ id: target.id, title: target.title });
+    }
+  }, [linkInput, linkingCollection, handlePickDatabase, handleChoosePage]);
+
+  const detectedChanges = detected ? changesFrom(detected) : [];
+  const detectedReplacing = detectedChanges.filter(id => Boolean(currentLinks()[id]));
 
   const handleDisconnect = useCallback(() => {
     Alert.alert(
@@ -349,6 +455,46 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
             </>
           ) : (
             <>
+              {isDetecting && (
+                <View className="flex-row items-center gap-2 mb-4">
+                  <ActivityIndicator size="small" color={ACCENT} />
+                  <Text className={`text-xs ${typeface.regular}`} style={{ color: palette.textMuted }}>
+                    Looking for your existing databases in Notion...
+                  </Text>
+                </View>
+              )}
+
+              {!isDetecting && detectedChanges.length > 0 && (
+                <Animated.View
+                  entering={FadeIn.duration(160)}
+                  className="rounded-2xl p-4 mb-5"
+                  style={{ backgroundColor: 'rgba(122,150,122,0.14)' }}
+                >
+                  <Text className={`text-sm ${typeface.semibold} mb-1`} style={{ color: palette.text }}>
+                    Found your existing databases
+                  </Text>
+                  <Text className={`text-xs ${typeface.regular} leading-4 mb-3`} style={{ color: palette.textMuted }}>
+                    {labelsFor(detectedChanges)}
+                    {detectedReplacing.length > 0
+                      ? `. This replaces the current link for ${labelsFor(detectedReplacing)} with the database that already has your data.`
+                      : '. Link them to bring your thoughts onto this device.'}
+                  </Text>
+                  <Pressable
+                    onPress={handleLinkDetected}
+                    disabled={isWorking || !isOnline}
+                    role="button"
+                    aria-label="Link existing Notion databases"
+                    className="flex-row items-center justify-center gap-2 rounded-2xl py-3"
+                    style={{ backgroundColor: ACCENT, opacity: isWorking || !isOnline ? 0.5 : 1 }}
+                  >
+                    <Link2 size={15} color="#FFFFFF" />
+                    <Text className={`text-sm ${typeface.semibold} text-white`}>
+                      Link existing databases
+                    </Text>
+                  </Pressable>
+                </Animated.View>
+              )}
+
               {/* Collections status card list */}
               <Text className={`text-sm ${typeface.semibold} mb-2`} style={{ color: palette.text }}>
                 Tab connections in Notion
@@ -420,7 +566,75 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
               </View>
 
               {/* Action buttons to provision all 5 databases or missing ones */}
-              {parentPages === null ? (
+              {pagePlan ? (
+                <Animated.View
+                  entering={FadeIn.duration(160)}
+                  className="rounded-2xl p-4 mb-5 border"
+                  style={{ backgroundColor: palette.surface, borderColor: palette.border }}
+                >
+                  <Text className={`text-sm ${typeface.semibold} mb-2`} style={{ color: palette.text }}>
+                    Found in "{pagePlan.page.title}"
+                  </Text>
+                  {COLLECTIONS.map(col => {
+                    const isFound = Boolean(pagePlan.found[col.id]);
+                    return (
+                      <View key={col.id} className="flex-row items-center gap-2 py-1">
+                        {isFound ? (
+                          <Check size={14} color={ACCENT} />
+                        ) : (
+                          <Plus size={14} color={palette.textMuted} />
+                        )}
+                        <Text
+                          className={`text-sm ${typeface.regular}`}
+                          style={{ color: isFound ? palette.text : palette.textMuted }}
+                        >
+                          {col.label}
+                          {isFound ? '' : ' -- not found'}
+                        </Text>
+                      </View>
+                    );
+                  })}
+
+                  <Pressable
+                    onPress={handleLinkFoundOnly}
+                    disabled={isWorking || !isOnline}
+                    role="button"
+                    aria-label="Link the databases found in this page"
+                    className="flex-row items-center justify-center gap-2 rounded-2xl py-3 mt-3"
+                    style={{ backgroundColor: ACCENT, opacity: isWorking || !isOnline ? 0.5 : 1 }}
+                  >
+                    <Link2 size={15} color="#FFFFFF" />
+                    <Text className={`text-sm ${typeface.semibold} text-white`}>Link existing</Text>
+                  </Pressable>
+
+                  {COLLECTIONS.some(col => !pagePlan.found[col.id]) && (
+                    <Pressable
+                      onPress={() => void linkAndCreateMissing(pagePlan.page.id, pagePlan.found)}
+                      disabled={isWorking || !isOnline}
+                      role="button"
+                      aria-label="Link existing and create the missing databases"
+                      className="flex-row items-center justify-center gap-2 rounded-2xl py-3 mt-2 border"
+                      style={{ borderColor: ACCENT, opacity: isWorking || !isOnline ? 0.5 : 1 }}
+                    >
+                      <Plus size={15} color={ACCENT} />
+                      <Text className={`text-sm ${typeface.medium}`} style={{ color: ACCENT }}>
+                        Link existing and create missing ({COLLECTIONS.filter(col => !pagePlan.found[col.id]).length})
+                      </Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable
+                    onPress={() => setPagePlan(null)}
+                    role="button"
+                    aria-label="Cancel"
+                    className="py-2 items-center mt-1"
+                  >
+                    <Text className={`text-sm ${typeface.medium}`} style={{ color: palette.textMuted }}>
+                      Cancel
+                    </Text>
+                  </Pressable>
+                </Animated.View>
+              ) : parentPages === null ? (
                 <View className="gap-2.5 mb-5">
                   <Pressable
                     onPress={startCreateFlow}
@@ -428,13 +642,17 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
                     role="button"
                     aria-label="Create all 5 databases in Notion"
                     className="flex-row items-center justify-center gap-2 rounded-2xl py-3.5"
-                    style={{
-                      backgroundColor: ACCENT,
-                      opacity: isWorking || !isOnline ? 0.5 : 1,
-                    }}
+                    style={
+                      detectedChanges.length > 0
+                        ? { borderWidth: 1, borderColor: ACCENT, opacity: isWorking || !isOnline ? 0.5 : 1 }
+                        : { backgroundColor: ACCENT, opacity: isWorking || !isOnline ? 0.5 : 1 }
+                    }
                   >
-                    <Plus size={16} color="#FFFFFF" />
-                    <Text className={`text-sm ${typeface.semibold} text-white`}>
+                    <Plus size={16} color={detectedChanges.length > 0 ? ACCENT : '#FFFFFF'} />
+                    <Text
+                      className={`text-sm ${typeface.semibold}`}
+                      style={{ color: detectedChanges.length > 0 ? ACCENT : '#FFFFFF' }}
+                    >
                       Create all 5 databases for me
                     </Text>
                   </Pressable>
@@ -471,16 +689,16 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
                     className={`text-xs ${typeface.regular} leading-4 mb-3`}
                     style={{ color: palette.textMuted }}
                   >
-                    Pick a page to hold all 5 databases (Remember, Learnings, Blessings, Sayings, Try Doing).
+                    Pick a page. If your databases are already in it, they get linked; otherwise all 5 are created there.
                   </Text>
 
                   {parentPages.map(page => (
                     <Pressable
                       key={page.id}
-                      onPress={() => handleCreateAllDatabases(page)}
+                      onPress={() => void handleChoosePage(page)}
                       disabled={isWorking}
                       role="button"
-                      aria-label={`Create all 5 databases inside ${page.title}`}
+                      aria-label={`Use ${page.title} for the databases`}
                       className="flex-row items-center gap-3 rounded-2xl px-4 py-3.5 mb-2"
                       style={{ backgroundColor: palette.pillMuted, opacity: isWorking ? 0.5 : 1 }}
                     >
@@ -512,7 +730,7 @@ export function NotionSetupModal({ visible, onClose }: NotionSetupModalProps) {
                 {linkingCollection ? `Paste link for ${linkingCollection}` : 'Paste a Notion page or database link'}
               </Text>
               <Text className={`text-xs ${typeface.regular} leading-4 mb-3`} style={{ color: palette.textMuted }}>
-                Pasting a page link creates all 5 databases inside it. Pasting a database link connects it to {linkingCollection ? `"${linkingCollection}"` : '"Remember"'}.
+                Pasting a page link links the databases already inside it, or offers to create them. Pasting a database link connects it to {linkingCollection ? `"${linkingCollection}"` : '"Remember"'}.
               </Text>
               <View className="flex-row items-center gap-2 mb-5">
                 <TextInput

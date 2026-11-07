@@ -81,6 +81,11 @@ export function invalidateTargetCache(): void {
   cachedTargets.clear();
 }
 
+/** Resolves once any running sync pass has finished. */
+export async function waitForSyncIdle(): Promise<void> {
+  if (inFlight) await inFlight.catch(() => undefined);
+}
+
 export async function syncWithNotion(targets: NotionSyncTargets): Promise<SyncOutcome> {
   if (inFlight) return inFlight;
   inFlight = performSync(targets).finally(() => {
@@ -353,6 +358,27 @@ function isFatal(error: unknown): boolean {
     error instanceof NotionError &&
     (error.kind === 'unauthorized' || error.kind === 'network' || error.kind === 'no-token')
   );
+}
+
+/**
+ * Forgets the Notion page ids of a collection's thoughts before it is pointed at
+ * a different database.
+ *
+ * Without this, every thought synced to the old database would look "deleted in
+ * Notion" on the next pass (its page id is absent from the new one) and be
+ * removed locally. Cleared, they read as never-pushed: rows already in the new
+ * database are matched by App ID, and the rest are pushed to it.
+ */
+export async function detachCollection(collection: CollectionId): Promise<void> {
+  const thoughts = await loadThoughts();
+  let changed = false;
+  const next = thoughts.map(thought => {
+    if ((thought.collection ?? 'remember') !== collection || !thought.notionPageId) return thought;
+    changed = true;
+    const { notionPageId: _dropped, ...rest } = thought;
+    return rest as Thought;
+  });
+  if (changed) await saveThoughts(next);
 }
 
 /**
