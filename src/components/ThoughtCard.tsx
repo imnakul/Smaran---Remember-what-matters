@@ -26,6 +26,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useAppearance } from '../hooks/useAppearance';
 import { useTypeface } from '../hooks/useTypeface';
 import { CardEdgeArt } from './CardEdgeArt';
+import { RichText } from './RichText';
 
 const TEXT_SIZE_MAP = { small: 15, medium: 18, large: 21 } as const;
 const SWIPE_THRESHOLD = 88;
@@ -472,19 +473,21 @@ export function ThoughtCard({ thought, isCompleted, onToggle, onEdit, onOpen, on
           {/* ========================================================= */}
           {thought.collection === 'learnings' ? (
             <View className="flex-1">
-              <Text
+              <RichText
+                text={thought.heading || thought.content}
                 className={`${typeface.semibold}`}
                 style={{ color: textColor, fontSize: fontSize * 1.05, lineHeight: fontSize * 1.35 }}
-              >
-                {thought.heading || thought.content}
-              </Text>
+                collectionId={thought.collection}
+                baseWeight="semibold"
+              />
               {Boolean(thought.subheading) && (
-                <Text
+                <RichText
+                  text={thought.subheading}
                   className={`${typeface.regular} mt-1.5`}
                   style={{ color: mutedTextColor, fontSize: Math.round(fontSize * 0.86), lineHeight: fontSize * 1.25 }}
-                >
-                  {thought.subheading}
-                </Text>
+                  collectionId={thought.collection}
+                  baseWeight="regular"
+                />
               )}
               <View className="flex-row items-center gap-1.5 mt-3">
                 <Text
@@ -514,25 +517,28 @@ export function ThoughtCard({ thought, isCompleted, onToggle, onEdit, onOpen, on
                   {formatAdditionDate(thought.eventDate || thought.createdAt)}
                 </Text>
               </View>
-              <Text
+              <RichText
+                text={thought.heading || thought.content}
                 className={`${typeface.semibold}`}
                 style={{ color: textColor, fontSize: fontSize * 1.05, lineHeight: fontSize * 1.35 }}
-              >
-                {thought.heading || thought.content}
-              </Text>
+                collectionId={thought.collection}
+                baseWeight="semibold"
+              />
               {Boolean(thought.subheading) && (
-                <Text
+                <RichText
+                  text={thought.subheading}
                   className={`${typeface.regular} mt-1.5`}
                   style={{ color: mutedTextColor, fontSize: Math.round(fontSize * 0.86), lineHeight: fontSize * 1.25 }}
-                >
-                  {thought.subheading}
-                </Text>
+                  collectionId={thought.collection}
+                  baseWeight="regular"
+                />
               )}
             </View>
           ) : thought.collection === 'sayings' ? (
             /* 3. SAYINGS: Quote + Name/Author below */
             <View className="flex-1">
-              <Text
+              <RichText
+                text={thought.content}
                 className={`${typeface.medium}`}
                 style={{
                   color: textColor,
@@ -540,9 +546,10 @@ export function ThoughtCard({ thought, isCompleted, onToggle, onEdit, onOpen, on
                   lineHeight: fontSize * 1.45,
                   fontStyle: 'italic',
                 }}
-              >
-                “{thought.content}”
-              </Text>
+                collectionId={thought.collection}
+                baseWeight="medium"
+                italicAll
+              />
               {Boolean(thought.author) && (
                 <View className="flex-row justify-end mt-2.5">
                   <Text
@@ -560,14 +567,16 @@ export function ThoughtCard({ thought, isCompleted, onToggle, onEdit, onOpen, on
           ) : thought.collection === 'tryDoing' ? (
             /* 4. TRY DOING: Action / Experiment text */
             <View className="flex-1">
-              <Text
+              <RichText
+                text={thought.content}
                 className={`${typeface.medium}`}
                 style={{ color: textColor, fontSize, lineHeight: fontSize * 1.4 }}
-              >
-                {thought.content}
-              </Text>
+                collectionId={thought.collection}
+                baseWeight="medium"
+              />
             </View>
           ) : (
+            /* ========================================================= */
             /* 5. REMEMBER (Default): Content + Repeat schedule + Checkbox */
             /* ========================================================= */
             <>
@@ -582,14 +591,14 @@ export function ThoughtCard({ thought, isCompleted, onToggle, onEdit, onOpen, on
                   />
                 ) : (
                   <View className="relative">
-                    <Text
+                    <RichText
+                      text={thought.content}
                       numberOfLines={isCompact ? 2 : 3}
-                      ellipsizeMode="tail"
                       className={`${typeface.medium}`}
                       style={{ color: textColor, fontSize, lineHeight: fontSize * 1.4 }}
-                    >
-                      {thought.content}
-                    </Text>
+                      collectionId={thought.collection}
+                      baseWeight="medium"
+                    />
                     <Animated.Text
                       numberOfLines={isCompact ? 2 : 3}
                       ellipsizeMode="tail"

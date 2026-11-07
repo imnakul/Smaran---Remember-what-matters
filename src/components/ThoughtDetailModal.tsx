@@ -1,5 +1,6 @@
-import { View, Text, Modal, Pressable, ScrollView, Alert } from 'react-native';
-import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { format } from 'date-fns';
 import { X, Check, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react-native';
@@ -9,6 +10,9 @@ import { useSettings } from '../context/SettingsContext';
 import { useAppearance } from '../hooks/useAppearance';
 import { useSwipeToDismiss } from '../hooks/useSwipeToDismiss';
 import { useTypeface } from '../hooks/useTypeface';
+import { RichText } from './RichText';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ThoughtDetailModalProps {
   thought: Thought | null;
@@ -35,8 +39,11 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
   const typeface = useTypeface(thought?.collection);
   const { settings } = useSettings();
   const appearance = useAppearance(thought?.collection);
+  const isFrosted = appearance.chromeBlur > 0;
   const palette = settings.darkMode ? NEUTRAL.dark : NEUTRAL.light;
-  const { gesture, animatedStyle, overlayStyle } = useSwipeToDismiss(onClose, !!thought);
+  const { gesture, animatedStyle, overlayStyle, dismiss } = useSwipeToDismiss(onClose, !!thought, {
+    animateIn: true,
+  });
 
   if (!thought) return null;
 
@@ -73,25 +80,45 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
       : 'Thought';
 
   return (
-    <Modal visible={!!thought} animationType="slide" transparent onRequestClose={onClose}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <Animated.View className="flex-1 justify-end bg-black/40" style={overlayStyle}>
-          <Pressable
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            onPress={onClose}
-            aria-label="Dismiss modal backdrop"
-          />
-          <Animated.View
-          className="p-6 pb-12 shadow-2xl max-h-[85%]"
-          style={[
-            {
-              backgroundColor: palette.background,
-              borderTopLeftRadius: appearance.sheetRadius,
-              borderTopRightRadius: appearance.sheetRadius,
-            },
-            animatedStyle,
-          ]}
-        >
+    <View style={StyleSheet.absoluteFill} className="justify-end z-50">
+      <AnimatedPressable
+        style={[StyleSheet.absoluteFill, overlayStyle]}
+        className="bg-black/40"
+        onPress={dismiss}
+        aria-label="Dismiss modal backdrop"
+        role="button"
+      />
+      <Animated.View
+        className="p-6 pb-12 shadow-2xl max-h-[85%] overflow-hidden"
+        style={[
+          {
+            backgroundColor: isFrosted ? 'transparent' : palette.background,
+            borderTopLeftRadius: appearance.sheetRadius,
+            borderTopRightRadius: appearance.sheetRadius,
+          },
+          animatedStyle,
+        ]}
+      >
+        {isFrosted && (
+          <>
+            <BlurView
+              intensity={Math.min(100, appearance.chromeBlur + 45)}
+              tint={settings.darkMode ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor: settings.darkMode
+                    ? 'rgba(22, 22, 22, 0.88)'
+                    : 'rgba(255, 255, 255, 0.86)',
+                },
+              ]}
+              pointerEvents="none"
+            />
+          </>
+        )}
           <GestureDetector gesture={gesture}>
             <View className="-mx-6 -mt-6 px-6 pt-4 pb-3">
               <View className="items-center mb-4">
@@ -101,19 +128,33 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
                 <Text className={`text-xl ${typeface.semibold}`} style={{ color: palette.text }}>
                   {modalTitle}
                 </Text>
-                <View
-                  className="px-2.5 py-1 rounded-full border"
-                  style={{
-                    backgroundColor: settings.darkMode ? 'rgba(143, 168, 143, 0.15)' : 'rgba(122, 150, 122, 0.1)',
-                    borderColor: settings.darkMode ? 'rgba(143, 168, 143, 0.3)' : 'rgba(122, 150, 122, 0.25)',
-                  }}
-                >
-                  <Text
-                    className={`text-xs ${typeface.medium}`}
-                    style={{ color: settings.darkMode ? '#8FA88F' : '#7A967A' }}
+                <View className="flex-row items-center gap-2">
+                  <View
+                    className="px-2.5 py-1 rounded-full border"
+                    style={{
+                      backgroundColor: settings.darkMode ? 'rgba(143, 168, 143, 0.15)' : 'rgba(122, 150, 122, 0.1)',
+                      borderColor: settings.darkMode ? 'rgba(143, 168, 143, 0.3)' : 'rgba(122, 150, 122, 0.25)',
+                    }}
                   >
-                    {collectionMeta.label}
-                  </Text>
+                    <Text
+                      className={`text-xs ${typeface.medium}`}
+                      style={{ color: settings.darkMode ? '#8FA88F' : '#7A967A' }}
+                    >
+                      {collectionMeta.label}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={onEdit}
+                    aria-label="Edit item"
+                    role="button"
+                    className="w-8 h-8 rounded-full items-center justify-center border"
+                    style={{
+                      backgroundColor: palette.surface,
+                      borderColor: palette.border,
+                    }}
+                  >
+                    <Pencil size={15} color={palette.text} />
+                  </Pressable>
                 </View>
               </View>
             </View>
@@ -123,13 +164,21 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
             {/* 1. LEARNINGS Detail */}
             {colId === 'learnings' && (
               <View style={{ backgroundColor: cardBackground, borderRadius: radius }} className="p-6">
-                <Text className={`text-xl ${typeface.semibold} leading-8`} style={{ color: cardTextColor }}>
-                  {thought.heading || thought.content}
-                </Text>
+                <RichText
+                  text={thought.heading || thought.content}
+                  className={`text-xl ${typeface.semibold} leading-8`}
+                  style={{ color: cardTextColor }}
+                  collectionId={thought.collection}
+                  baseWeight="semibold"
+                />
                 {Boolean(thought.subheading) && (
-                  <Text className={`text-base ${typeface.regular} leading-6 mt-3`} style={{ color: mutedTextColor }}>
-                    {thought.subheading}
-                  </Text>
+                  <RichText
+                    text={thought.subheading}
+                    className={`text-base ${typeface.regular} leading-6 mt-3`}
+                    style={{ color: mutedTextColor }}
+                    collectionId={thought.collection}
+                    baseWeight="regular"
+                  />
                 )}
                 <View className="mt-6 pt-4 border-t border-black/5 dark:border-white/10 flex-row items-center justify-between">
                   <Text className={`text-xs ${typeface.medium}`} style={{ color: mutedTextColor }}>
@@ -145,13 +194,21 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
                 <Text className={`text-xs ${typeface.semibold} mb-2`} style={{ color: settings.darkMode ? '#A3C4A3' : '#557A55' }}>
                   {formatDetailDate(thought.eventDate || thought.createdAt)}
                 </Text>
-                <Text className={`text-xl ${typeface.semibold} leading-8`} style={{ color: cardTextColor }}>
-                  {thought.heading || thought.content}
-                </Text>
+                <RichText
+                  text={thought.heading || thought.content}
+                  className={`text-xl ${typeface.semibold} leading-8`}
+                  style={{ color: cardTextColor }}
+                  collectionId={thought.collection}
+                  baseWeight="semibold"
+                />
                 {Boolean(thought.subheading) && (
-                  <Text className={`text-base ${typeface.regular} leading-6 mt-3`} style={{ color: mutedTextColor }}>
-                    {thought.subheading}
-                  </Text>
+                  <RichText
+                    text={thought.subheading}
+                    className={`text-base ${typeface.regular} leading-6 mt-3`}
+                    style={{ color: mutedTextColor }}
+                    collectionId={thought.collection}
+                    baseWeight="regular"
+                  />
                 )}
               </View>
             )}
@@ -159,9 +216,14 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
             {/* 3. SAYINGS Detail */}
             {colId === 'sayings' && (
               <View style={{ backgroundColor: cardBackground, borderRadius: radius }} className="p-6">
-                <Text className={`text-2xl ${typeface.medium} leading-9 italic`} style={{ color: cardTextColor }}>
-                  “{thought.content}”
-                </Text>
+                <RichText
+                  text={thought.content}
+                  className={`text-2xl ${typeface.medium} leading-9 italic`}
+                  style={{ color: cardTextColor }}
+                  collectionId={thought.collection}
+                  baseWeight="medium"
+                  italicAll
+                />
                 {Boolean(thought.author) && (
                   <View className="flex-row justify-end mt-4">
                     <Text className={`text-base ${typeface.semibold}`} style={{ color: settings.darkMode ? '#C8D6C8' : '#456045' }}>
@@ -175,9 +237,13 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
             {/* 4. TRY DOING Detail */}
             {colId === 'tryDoing' && (
               <View style={{ backgroundColor: cardBackground, borderRadius: radius }} className="p-6">
-                <Text className={`text-xl ${typeface.medium} leading-8`} style={{ color: cardTextColor }}>
-                  {thought.content}
-                </Text>
+                <RichText
+                  text={thought.content}
+                  className={`text-xl ${typeface.medium} leading-8`}
+                  style={{ color: cardTextColor }}
+                  collectionId={thought.collection}
+                  baseWeight="medium"
+                />
               </View>
             )}
 
@@ -185,9 +251,13 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
             {colId === 'remember' && (
               <>
                 <View style={{ backgroundColor: cardBackground, borderRadius: radius }} className="p-6">
-                  <Text className={`text-xl ${typeface.medium} leading-8`} style={{ color: cardTextColor }}>
-                    {thought.content}
-                  </Text>
+                  <RichText
+                    text={thought.content}
+                    className={`text-xl ${typeface.medium} leading-8`}
+                    style={{ color: cardTextColor }}
+                    collectionId={thought.collection}
+                    baseWeight="medium"
+                  />
                 </View>
 
                 <View className="flex-row items-center justify-between mt-4 px-1">
@@ -218,54 +288,68 @@ export function ThoughtDetailModal({ thought, isCompleted, onClose, onToggle, on
               </>
             )}
 
-            {/* Standard actions: Edit, Archive, Delete */}
+            {/* Standard actions: Line 1: Edit, Line 2: Archive & Delete (50% 50%) */}
             <Pressable
               onPress={onEdit}
               aria-label="Edit item"
               role="button"
-              className="mt-4 rounded-2xl py-4 flex-row items-center justify-center gap-2"
-              style={{ borderWidth: 1, borderColor: palette.border }}
+              className="mt-5 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border"
+              style={{
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+              }}
             >
-              <Pencil size={18} color={palette.text} />
-              <Text className={`${typeface.medium} text-base`} style={{ color: palette.text }}>
+              <Pencil size={17} color={palette.text} />
+              <Text className={`${typeface.semibold} text-base`} style={{ color: palette.text }}>
                 Edit
               </Text>
             </Pressable>
 
-            <Pressable
-              onPress={onToggleArchive}
-              aria-label={thought.archived ? 'Unarchive' : 'Archive'}
-              role="button"
-              className="mt-3 rounded-2xl py-4 flex-row items-center justify-center gap-2"
-              style={{ borderWidth: 1, borderColor: palette.border }}
-            >
-              {thought.archived ? (
-                <ArchiveRestore size={18} color={palette.textMuted} />
-              ) : (
-                <Archive size={18} color={palette.textMuted} />
-              )}
-              <Text className={`${typeface.medium} text-base`} style={{ color: palette.textMuted }}>
-                {thought.archived ? 'Restore from archive' : 'Archive'}
-              </Text>
-            </Pressable>
+            {/* Second line: Archive (50%) & Delete (50%) in same line */}
+            <View className="flex-row items-center gap-3 mt-3">
+              <Pressable
+                onPress={onToggleArchive}
+                aria-label={thought.archived ? 'Restore from archive' : 'Archive item'}
+                role="button"
+                className="flex-1 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border"
+                style={{
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                }}
+              >
+                {thought.archived ? (
+                  <ArchiveRestore size={16} color={palette.textMuted} />
+                ) : (
+                  <Archive size={16} color={palette.textMuted} />
+                )}
+                <Text className={`${typeface.medium} text-sm`} style={{ color: palette.textMuted }}>
+                  {thought.archived ? 'Restore' : 'Archive'}
+                </Text>
+              </Pressable>
 
-            <Pressable
-              onPress={handleDelete}
-              aria-label="Delete item"
-              role="button"
-              className="mt-3 rounded-2xl py-4 flex-row items-center justify-center gap-2"
-              style={{ borderWidth: 1, borderColor: '#C0554A' }}
-            >
-              <Trash2 size={18} color="#C0554A" />
-              <Text className={`${typeface.medium} text-base`} style={{ color: '#C0554A' }}>
-                Delete
-              </Text>
-            </Pressable>
+              <Pressable
+                onPress={handleDelete}
+                aria-label="Delete item"
+                role="button"
+                className="flex-1 rounded-2xl py-3.5 flex-row items-center justify-center gap-2 border"
+                style={{
+                  backgroundColor: settings.darkMode
+                    ? 'rgba(192, 85, 74, 0.12)'
+                    : 'rgba(192, 85, 74, 0.08)',
+                  borderColor: settings.darkMode
+                    ? 'rgba(192, 85, 74, 0.35)'
+                    : 'rgba(192, 85, 74, 0.25)',
+                }}
+              >
+                <Trash2 size={16} color="#C0554A" />
+                <Text className={`${typeface.medium} text-sm`} style={{ color: '#C0554A' }}>
+                  Delete
+                </Text>
+              </Pressable>
+            </View>
             <View className="h-6" />
           </ScrollView>
         </Animated.View>
-      </Animated.View>
-      </GestureHandlerRootView>
-    </Modal>
+    </View>
   );
 }

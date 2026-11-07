@@ -2,7 +2,7 @@
   "expo": {
     "name": "Smaran",
     "slug": "Remember",
-    "version": "1.2.0",
+    "version": "1.2.2",
     "scheme": "remember-app",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.remember.app",
-      "versionCode": 3,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",

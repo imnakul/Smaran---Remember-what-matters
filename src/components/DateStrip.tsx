@@ -79,7 +79,7 @@ function DatePill({ date, isSelected, onPress, darkMode, radius, blur, dense, di
       withTiming(0, { duration: 200, easing: Easing.bezier(0.25, 0.1, 0.25, 1) })
     );
     contentOpacity.value = withDelay(delay, withTiming(1, { duration: 200 }));
-    // `direction` is read at the moment the day changes and must not retrigger
+    // direction is read at the moment the day changes and must not retrigger
     // this on its own, so it is deliberately not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayKey, index, contentShift, contentOpacity]);
@@ -221,7 +221,7 @@ export function DateStrip({ selectedDate, onSelectDate }: DateStripProps) {
 
   return (
     <GestureDetector gesture={panGesture}>
-      <View className={`w-full flex-row items-center justify-between px-4 ${isDense ? 'py-2' : 'py-4'}`}>
+      <View className={`w-full flex-row items-center justify-between px-4 ${isDense ? 'pt-0.5 pb-1.5' : 'pt-1 pb-2'}`}>
         {dates.map((date, index) => (
           <DatePill
             // Keyed by slot, not by date: remounting on every change would throw

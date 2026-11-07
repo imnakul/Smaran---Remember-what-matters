@@ -1,6 +1,6 @@
 {
   "name": "remember",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/caveat": "^0.4.2",
@@ -60,7 +60,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "expo lint"
   },
   "private": true
 }

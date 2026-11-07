@@ -276,6 +276,7 @@ export function SettingsModal({
   const { settings, updateSettings } = useSettings();
   const { requestSync, status: syncStatus } = useSync();
   const appearance = useAppearance();
+  const isFrosted = appearance.chromeBlur > 0;
   const palette = settings.darkMode ? NEUTRAL.dark : NEUTRAL.light;
   const activePreset = matchPreset(settings);
   const { gesture, animatedStyle, overlayStyle, dismiss } = useSwipeToDismiss(onClose, visible, {
@@ -285,7 +286,6 @@ export function SettingsModal({
   const { height: windowHeight } = useWindowDimensions();
   const sheetHeight = Math.round(windowHeight * 0.88);
   const insets = useSafeAreaInsets();
-  const isFrosted = appearance.chromeBlur > 0;
 
   // Settings Sub-Tabs State
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -301,7 +301,8 @@ export function SettingsModal({
   const indicatorX = useSharedValue(0);
 
   const activeTabIndex = SETTINGS_TABS.findIndex(t => t.id === activeTab);
-  const tabItemWidth = tabBarWidth > 0 ? (tabBarWidth - 12) / SETTINGS_TABS.length : 0;
+  const tabItemWidth = tabBarWidth > 0 ? tabBarWidth / SETTINGS_TABS.length : 0;
+  const PILL_INSET = 2;
 
   useEffect(() => {
     if (tabItemWidth > 0) {
@@ -333,8 +334,8 @@ export function SettingsModal({
   const tabIndicatorStyle = useAnimatedStyle(() => {
     if (tabItemWidth === 0) return { opacity: 0 };
     return {
-      width: tabItemWidth,
-      transform: [{ translateX: indicatorX.value }],
+      width: Math.max(0, tabItemWidth - PILL_INSET * 2),
+      transform: [{ translateX: indicatorX.value + PILL_INSET }],
       opacity: 1,
     };
   });
@@ -610,8 +611,8 @@ export function SettingsModal({
                 StyleSheet.absoluteFill,
                 {
                   backgroundColor: settings.darkMode
-                    ? 'rgba(22,22,22,0.88)'
-                    : 'rgba(255,255,255,0.86)',
+                    ? 'rgba(22, 22, 22, 0.88)'
+                    : 'rgba(255, 255, 255, 0.86)',
                 },
               ]}
               pointerEvents="none"
@@ -1845,36 +1846,46 @@ export function SettingsModal({
               backgroundColor: settings.darkMode ? '#1C1C1C' : '#F5F5EE',
               borderTopWidth: 1,
               borderColor: settings.darkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-              paddingBottom: Math.max(insets.bottom, 12),
+              paddingBottom: insets.bottom > 0 ? insets.bottom : 4,
+              paddingTop: 3,
+              paddingHorizontal: 4,
+              overflow: 'hidden',
+              position: 'relative',
             }}
-            className="px-3 pt-2"
           >
             <View
               onLayout={(e: LayoutChangeEvent) => {
                 const w = e.nativeEvent.layout.width;
                 if (w > 0 && w !== tabBarWidth) {
                   setTabBarWidth(w);
-                  indicatorX.value = activeTabIndex * ((w - 12) / SETTINGS_TABS.length);
+                  indicatorX.value = activeTabIndex * (w / SETTINGS_TABS.length);
                 }
               }}
-              className="flex-row items-center relative py-1"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                position: 'relative',
+                paddingVertical: 2,
+              }}
               role="tablist"
             >
               {/* Sliding Background Pill */}
               {tabItemWidth > 0 && (
                 <Animated.View
+                  pointerEvents="none"
                   style={[
                     {
                       position: 'absolute',
                       top: 2,
                       bottom: 2,
-                      left: 6,
+                      left: 0,
                       borderRadius: 14,
                       backgroundColor: settings.darkMode
                         ? 'rgba(255, 255, 255, 0.09)'
                         : 'rgba(0, 0, 0, 0.06)',
                       borderWidth: 1.5,
                       borderColor: activeGeneralThemeColor,
+                      zIndex: 5,
                     },
                     tabIndicatorStyle,
                   ]}
@@ -1891,7 +1902,14 @@ export function SettingsModal({
                     onPress={() => handleSelectTab(tab.id)}
                     role="tab"
                     aria-selected={isTabActive}
-                    className="flex-1 items-center justify-center py-2 px-1 relative z-10"
+                    style={{
+                      width: tabItemWidth > 0 ? tabItemWidth : `${100 / SETTINGS_TABS.length}%`,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingVertical: 6,
+                      position: 'relative',
+                      zIndex: 10,
+                    }}
                   >
                     <IconC
                       size={18}

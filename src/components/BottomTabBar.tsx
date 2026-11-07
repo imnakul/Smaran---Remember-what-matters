@@ -61,11 +61,11 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 // 1. CAROUSEL ARC (Physical Rotating Arc Dial)
 // ==========================================
 
-const CAROUSEL_BAR_HEIGHT = 68;
-const CAROUSEL_SELECTOR_HEADROOM = 38;
-const CAROUSEL_ARC_DEPTH = 22;
+const CAROUSEL_BAR_HEIGHT = 58;
+const CAROUSEL_SELECTOR_HEADROOM = 28;
+const CAROUSEL_ARC_DEPTH = 18;
 const CAROUSEL_SELECTOR_RADIUS = 29;
-const CAROUSEL_SELECTOR_TOP = 12;
+const CAROUSEL_SELECTOR_TOP = 6;
 const CAROUSEL_TAB_TOUCH_SIZE = 58;
 const CAROUSEL_STATIC_ICON_SIZE = 42;
 
@@ -232,8 +232,8 @@ function CarouselArcBar({
   const activeMeta = orderedCollections[activeIndex] ?? COLLECTIONS[0];
 
   const inactiveIconColor = isDark ? '#F5F5F2' : '#55575C';
-  const inactiveSurfaceColor = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(45,46,50,0.10)';
-  const inactiveBorderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(45,46,50,0.08)';
+  const inactiveSurfaceColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.50)';
+  const inactiveBorderColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)';
 
   const progress = useSharedValue(activeIndex);
   const dragStartProgress = useSharedValue(activeIndex);
@@ -286,7 +286,7 @@ function CarouselArcBar({
         role="tablist"
         style={{
           height: CAROUSEL_SELECTOR_HEADROOM + CAROUSEL_BAR_HEIGHT,
-          marginBottom: Math.max(bottomInset, 12) + 8,
+          marginBottom: Math.max(bottomInset, 4),
         }}
       >
         <View
@@ -326,34 +326,33 @@ function CarouselArcBar({
               pointerEvents="none"
               style={{
                 alignItems: 'center',
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.08)',
-                borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#FFFFFF',
+                backgroundColor: isDark
+                  ? 'rgba(255, 255, 255, 0.12)'
+                  : 'rgba(255, 255, 255, 0.65)',
+                borderColor: isDark
+                  ? 'rgba(255, 255, 255, 0.28)'
+                  : 'rgba(255, 255, 255, 0.85)',
                 borderRadius: CAROUSEL_SELECTOR_RADIUS,
-                borderWidth: 2,
+                borderWidth: 1.5,
                 height: CAROUSEL_SELECTOR_RADIUS * 2,
                 justifyContent: 'center',
                 left: centerX - CAROUSEL_SELECTOR_RADIUS,
+                overflow: 'hidden',
                 position: 'absolute',
                 shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.28,
-                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: isDark ? 0.28 : 0.12,
+                shadowRadius: 8,
+                elevation: 6,
                 top: CAROUSEL_SELECTOR_TOP,
                 width: CAROUSEL_SELECTOR_RADIUS * 2,
                 zIndex: 16,
               }}
             >
-              <View
-                style={{
-                  alignItems: 'center',
-                  backgroundColor: isDark ? '#242426' : '#FAFAF7',
-                  borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(20,20,22,0.12)',
-                  borderRadius: 24,
-                  borderWidth: 1,
-                  height: 48,
-                  justifyContent: 'center',
-                  width: 48,
-                }}
+              <BlurView
+                intensity={isDark ? 35 : 60}
+                tint={isDark ? 'dark' : 'light'}
+                style={StyleSheet.absoluteFill}
               />
             </View>
 
@@ -364,7 +363,7 @@ function CarouselArcBar({
                 position: 'absolute',
                 left: centerX - 70,
                 width: 140,
-                top: CAROUSEL_SELECTOR_TOP + CAROUSEL_SELECTOR_RADIUS * 2 + 8,
+                top: CAROUSEL_SELECTOR_TOP + CAROUSEL_SELECTOR_RADIUS * 2 + 3,
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 18,
@@ -490,8 +489,8 @@ function OrbitMovingRingBar({
         role="tablist"
         className="mx-3"
         style={{
-          height: 104,
-          marginBottom: Math.max(bottomInset, 12) + 6,
+          height: 82,
+          marginBottom: Math.max(bottomInset, 4),
           position: 'relative',
         }}
       >
@@ -502,41 +501,41 @@ function OrbitMovingRingBar({
             style={[
               {
                 position: 'absolute',
-                top: 10,
+                top: 4,
                 left: 0,
                 width: 58,
                 height: 58,
                 borderRadius: 29,
+                overflow: 'hidden',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.08)',
-                borderWidth: 2,
-                borderColor: isDark ? 'rgba(255,255,255,0.18)' : '#FFFFFF',
+                backgroundColor: isDark
+                  ? 'rgba(255, 255, 255, 0.12)'
+                  : 'rgba(255, 255, 255, 0.65)',
+                borderWidth: 1.5,
+                borderColor: isDark
+                  ? 'rgba(255, 255, 255, 0.28)'
+                  : 'rgba(255, 255, 255, 0.85)',
                 shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: 0.28,
-                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: isDark ? 0.28 : 0.12,
+                shadowRadius: 8,
                 elevation: 6,
                 zIndex: 10,
               },
               animatedRingStyle,
             ]}
           >
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: isDark ? '#242426' : '#FAFAF7',
-                borderWidth: 1,
-                borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(20,20,22,0.12)',
-              }}
+            <BlurView
+              intensity={isDark ? 35 : 60}
+              tint={isDark ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
             />
           </Animated.View>
         )}
 
         {/* Fixed Icons Row */}
-        <View className="flex-row items-center relative z-20" style={{ top: 10 }}>
+        <View className="flex-row items-center relative z-20" style={{ top: 4 }}>
           {orderedCollections.map((col, idx) => {
             const Icon = ICONS[col.id];
             const isSelected = activeCollection === col.id;
@@ -570,7 +569,7 @@ function OrbitMovingRingBar({
             style={[
               {
                 position: 'absolute',
-                top: 76,
+                top: 66,
                 left: 0,
                 width: 120,
                 alignItems: 'center',
@@ -620,9 +619,10 @@ function NormalSliderBar({
   isDark: boolean;
 }): React.JSX.Element {
   const typeface = useTypeface(activeCollection);
-  const [width, setWidth] = useState(0);
+  const [trackWidth, setTrackWidth] = useState(0);
   const collectionCount = orderedCollections.length;
-  const itemWidth = width > 0 ? width / collectionCount : 0;
+  const tabWidth = trackWidth > 0 ? trackWidth / collectionCount : 0;
+  const PILL_INSET = 2;
 
   const sliderProgress = useSharedValue(activeIndex);
   const dragStartProgress = useSharedValue(activeIndex);
@@ -632,7 +632,7 @@ function NormalSliderBar({
   }, [activeIndex, sliderProgress]);
 
   const panGesture = Gesture.Pan()
-    .enabled(itemWidth > 0)
+    .enabled(tabWidth > 0)
     .activeOffsetX([-6, 6])
     .failOffsetY([-14, 14])
     .onBegin(() => {
@@ -642,11 +642,11 @@ function NormalSliderBar({
     .onUpdate((event) => {
       sliderProgress.value = Math.max(
         0,
-        Math.min(collectionCount - 1, dragStartProgress.value + event.translationX / itemWidth)
+        Math.min(collectionCount - 1, dragStartProgress.value + event.translationX / tabWidth)
       );
     })
     .onEnd((event) => {
-      const velocityInTabs = event.velocityX / itemWidth;
+      const velocityInTabs = event.velocityX / tabWidth;
       const targetIndex = Math.max(
         0,
         Math.min(collectionCount - 1, Math.round(sliderProgress.value + velocityInTabs * 0.15))
@@ -662,20 +662,20 @@ function NormalSliderBar({
     });
 
   const animatedPillStyle = useAnimatedStyle(() => {
-    if (itemWidth === 0) return { opacity: 0 };
+    if (tabWidth === 0) return { opacity: 0 };
     return {
       transform: [
-        { translateX: sliderProgress.value * itemWidth + 4 },
+        { translateX: sliderProgress.value * tabWidth + PILL_INSET },
       ],
-      width: itemWidth - 8,
+      width: Math.max(0, tabWidth - PILL_INSET * 2),
       opacity: 1,
     };
   });
 
   const handleLayout = (event: LayoutChangeEvent): void => {
     const measuredWidth = event.nativeEvent.layout.width;
-    if (measuredWidth > 0 && measuredWidth !== width) {
-      setWidth(measuredWidth);
+    if (measuredWidth > 0 && measuredWidth !== trackWidth) {
+      setTrackWidth(measuredWidth);
       sliderProgress.value = activeIndex;
     }
   };
@@ -683,29 +683,37 @@ function NormalSliderBar({
   return (
     <GestureDetector gesture={panGesture}>
       <View
-        onLayout={handleLayout}
         aria-label="Bottom slider navigation"
         role="tablist"
         style={{
           backgroundColor: isDark ? '#1C1C1F' : '#F5F5EE',
           borderTopWidth: 1,
           borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-          paddingBottom: Math.max(bottomInset, 12),
-          paddingTop: 6,
+          paddingBottom: bottomInset > 0 ? bottomInset : 4,
+          paddingTop: 3,
           paddingHorizontal: 4,
         }}
       >
-        <View className="flex-row items-center relative py-1">
+        <View
+          onLayout={handleLayout}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            position: 'relative',
+            paddingVertical: 2,
+          }}
+        >
           {/* Animated Background Pill */}
-          {itemWidth > 0 && (
+          {tabWidth > 0 && (
             <Animated.View
+              pointerEvents="none"
               style={[
                 {
                   position: 'absolute',
                   top: 2,
                   bottom: 2,
                   left: 0,
-                  borderRadius: 16,
+                  borderRadius: 14,
                   backgroundColor: isDark ? 'rgba(255, 255, 255, 0.09)' : 'rgba(0, 0, 0, 0.05)',
                   borderWidth: 1.5,
                   borderColor: accent,
@@ -727,7 +735,14 @@ function NormalSliderBar({
                 onPress={() => onSelectIndex(idx)}
                 role="tab"
                 aria-selected={isSelected}
-                className="flex-1 items-center justify-center py-2 px-1 relative z-10"
+                style={{
+                  width: tabWidth > 0 ? tabWidth : `${100 / collectionCount}%`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 6,
+                  position: 'relative',
+                  zIndex: 10,
+                }}
               >
                 <Icon
                   size={19}
@@ -780,9 +795,12 @@ function FloatingCapsuleBar({
   isDark: boolean;
 }): React.JSX.Element {
   const typeface = useTypeface(activeCollection);
-  const [width, setWidth] = useState(0);
+  const [capsuleWidth, setCapsuleWidth] = useState(0);
   const collectionCount = orderedCollections.length;
-  const itemWidth = width > 0 ? width / collectionCount : 0;
+  const CAPSULE_PAD = 4;
+  const trackWidth = Math.max(0, capsuleWidth - CAPSULE_PAD * 2);
+  const tabWidth = trackWidth > 0 ? trackWidth / collectionCount : 0;
+  const PILL_INSET = 2;
 
   const floatingProgress = useSharedValue(activeIndex);
   const dragStartProgress = useSharedValue(activeIndex);
@@ -792,7 +810,7 @@ function FloatingCapsuleBar({
   }, [activeIndex, floatingProgress]);
 
   const panGesture = Gesture.Pan()
-    .enabled(itemWidth > 0)
+    .enabled(tabWidth > 0)
     .activeOffsetX([-6, 6])
     .failOffsetY([-14, 14])
     .onBegin(() => {
@@ -802,11 +820,11 @@ function FloatingCapsuleBar({
     .onUpdate((event) => {
       floatingProgress.value = Math.max(
         0,
-        Math.min(collectionCount - 1, dragStartProgress.value + event.translationX / itemWidth)
+        Math.min(collectionCount - 1, dragStartProgress.value + event.translationX / tabWidth)
       );
     })
     .onEnd((event) => {
-      const velocityInTabs = event.velocityX / itemWidth;
+      const velocityInTabs = event.velocityX / tabWidth;
       const targetIndex = Math.max(
         0,
         Math.min(collectionCount - 1, Math.round(floatingProgress.value + velocityInTabs * 0.15))
@@ -822,20 +840,20 @@ function FloatingCapsuleBar({
     });
 
   const animatedHighlightStyle = useAnimatedStyle(() => {
-    if (itemWidth === 0) return { opacity: 0 };
+    if (tabWidth === 0) return { opacity: 0 };
     return {
       transform: [
-        { translateX: floatingProgress.value * itemWidth + 5 },
+        { translateX: CAPSULE_PAD + floatingProgress.value * tabWidth + PILL_INSET },
       ],
-      width: itemWidth - 10,
+      width: Math.max(0, tabWidth - PILL_INSET * 2),
       opacity: 1,
     };
   });
 
   const handleLayout = (event: LayoutChangeEvent): void => {
     const measuredWidth = event.nativeEvent.layout.width;
-    if (measuredWidth > 0 && measuredWidth !== width) {
-      setWidth(measuredWidth);
+    if (measuredWidth > 0 && measuredWidth !== capsuleWidth) {
+      setCapsuleWidth(measuredWidth);
       floatingProgress.value = activeIndex;
     }
   };
@@ -845,7 +863,7 @@ function FloatingCapsuleBar({
       <View
         className="mx-4"
         style={{
-          marginBottom: Math.max(bottomInset, 12) + 6,
+          marginBottom: bottomInset > 0 ? bottomInset : 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: isDark ? 0.38 : 0.16,
@@ -858,8 +876,8 @@ function FloatingCapsuleBar({
           aria-label="Floating capsule navigation"
           role="tablist"
           style={{
-            height: 60,
-            borderRadius: 30,
+            height: 56,
+            borderRadius: 28,
             overflow: 'hidden',
             backgroundColor: isDark ? 'rgba(28, 28, 32, 0.78)' : 'rgba(255, 255, 255, 0.82)',
             borderWidth: 1.5,
@@ -874,15 +892,16 @@ function FloatingCapsuleBar({
           />
 
           {/* Sliding Pill Highlight */}
-          {itemWidth > 0 && (
+          {tabWidth > 0 && (
             <Animated.View
+              pointerEvents="none"
               style={[
                 {
                   position: 'absolute',
-                  top: 5,
-                  bottom: 5,
+                  top: 4,
+                  bottom: 4,
                   left: 0,
-                  borderRadius: 25,
+                  borderRadius: 24,
                   backgroundColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.06)',
                   borderWidth: 1.5,
                   borderColor: accent,
@@ -894,7 +913,15 @@ function FloatingCapsuleBar({
           )}
 
           {/* Icons and labels */}
-          <View className="flex-row items-center relative z-10 px-1">
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: CAPSULE_PAD,
+              position: 'relative',
+              zIndex: 10,
+            }}
+          >
             {orderedCollections.map((col, idx) => {
               const Icon = ICONS[col.id];
               const isSelected = activeCollection === col.id;
@@ -905,7 +932,12 @@ function FloatingCapsuleBar({
                   onPress={() => onSelectIndex(idx)}
                   role="tab"
                   aria-selected={isSelected}
-                  className="flex-1 items-center justify-center py-1.5"
+                  style={{
+                    width: tabWidth > 0 ? tabWidth : `${100 / collectionCount}%`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingVertical: 5,
+                  }}
                 >
                   <Icon
                     size={20}

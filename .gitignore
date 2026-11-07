@@ -42,3 +42,10 @@ yarn-error.*
 
 # APK binaries
 *.apk
+
+# local run logs
+expo_*.log
+start_expo.bat
+
+# release signing (never commit)
+/signing/

@@ -17,6 +17,7 @@ import { CORNER_RADIUS, NEUTRAL, resolveTheme } from '../constants/theme';
 import { useSettings } from '../context/SettingsContext';
 import { isThoughtCompletedOnDate } from '../lib/scheduling';
 import { useTypeface } from '../hooks/useTypeface';
+import { RichText } from './RichText';
 
 interface FocusModalProps {
   visible: boolean;
@@ -164,12 +165,13 @@ export function FocusModal({ visible, onClose, thoughts, selectedDate, onToggle 
                   ]}
                   className="p-8 justify-center"
                 >
-                  <Text
+                  <RichText
+                    text={current.content}
                     className={`${typeface.medium} text-2xl text-center`}
                     style={{ color: cardTextColor, lineHeight: 34 }}
-                  >
-                    {current.content}
-                  </Text>
+                    collectionId={current.collection}
+                    baseWeight="medium"
+                  />
                   {isCompleted && (
                     <View className="flex-row items-center justify-center gap-2 mt-6">
                       <Check size={16} color={cardTextColor} />

@@ -230,7 +230,7 @@ export default function Home() {
       className="flex-1"
       style={{ backgroundColor: settings.wallpaperUri ? 'transparent' : palette.background }}
     >
-    <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
+      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
       {settings.wallpaperUri && (
         <ImageBackground
           source={{ uri: settings.wallpaperUri }}
@@ -253,7 +253,7 @@ export default function Home() {
 
       {/* Top Header */}
       <View
-        className="px-6 pt-1 pb-2 flex-row items-center justify-between"
+        className="px-6 pt-1 pb-1 flex-row items-center justify-between"
       >
         {isRemember ? (
           <GlassSurface>
@@ -379,7 +379,7 @@ export default function Home() {
                 onDelete={() => handleDelete(item)}
               />
             )}
-            contentContainerStyle={{ paddingBottom: 110, paddingTop: isRemember ? 0 : 8 }}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 90, paddingTop: isRemember ? 0 : 8 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View className="flex-1 items-center justify-center pt-20 px-10">
@@ -398,7 +398,7 @@ export default function Home() {
           {
             position: 'absolute',
             right: 24,
-            bottom: insets.bottom + 96,
+            bottom: insets.bottom + 76,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: settings.darkMode ? 0.35 : 0.16,
@@ -440,7 +440,6 @@ export default function Home() {
           <BlurView
             intensity={settings.darkMode ? 35 : 60}
             tint={settings.darkMode ? 'dark' : 'light'}
-            experimentalBlurMethod="dimezisBlurView"
             style={StyleSheet.absoluteFill}
           />
           <Plus size={32} color={palette.text} strokeWidth={2.4} />

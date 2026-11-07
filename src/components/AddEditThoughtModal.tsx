@@ -1,7 +1,14 @@
-import { View, Text, Modal, TextInput, Pressable, ScrollView, Switch } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Switch, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useState, useEffect } from 'react';
-import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  FadeInRight,
+  FadeOutLeft,
+  LinearTransition,
+} from 'react-native-reanimated';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { Thought, ThemeId, ThoughtDraft, CollectionId, COLLECTIONS } from '../types';
@@ -10,9 +17,14 @@ import { useSettings } from '../context/SettingsContext';
 import { useAppearance } from '../hooks/useAppearance';
 import { useSwipeToDismiss } from '../hooks/useSwipeToDismiss';
 import { HueSlider } from './HueSlider';
-import { hslToHex, hexToHue } from '../lib/color';
+import { hslToHex, hexToHue, withAlpha } from '../lib/color';
 import { X, Check, Palette, EyeOff, Brain, BookOpen, Sparkles, Quote, Zap, Calendar as CalendarIcon } from 'lucide-react-native';
 import { useTypeface } from '../hooks/useTypeface';
+import { TiptapToolbar } from './TiptapToolbar';
+import { RichText } from './RichText';
+import { applyFormatting, FormatAction } from '../lib/richText';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface AddEditThoughtModalProps {
   visible: boolean;
@@ -46,8 +58,11 @@ export function AddEditThoughtModal({
   const typeface = useTypeface();
   const { settings } = useSettings();
   const appearance = useAppearance();
+  const isFrosted = appearance.chromeBlur > 0;
   const palette = settings.darkMode ? NEUTRAL.dark : NEUTRAL.light;
-  const { gesture, animatedStyle, overlayStyle } = useSwipeToDismiss(onClose, visible);
+  const { gesture, animatedStyle, overlayStyle, dismiss } = useSwipeToDismiss(onClose, visible, {
+    animateIn: true,
+  });
 
   const [collection, setCollection] = useState<CollectionId>(defaultCollection);
   const [content, setContent] = useState('');
@@ -108,6 +123,30 @@ export function AddEditThoughtModal({
       }
     }
   }, [visible, initialData, initialContent, defaultCollection]);
+
+  const [activeField, setActiveField] = useState<'content' | 'heading' | 'subheading' | 'author'>('content');
+  const [selection, setSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
+  const [showPreview, setShowPreview] = useState(false);
+
+  const handleFormat = (action: FormatAction) => {
+    if (activeField === 'heading') {
+      const result = applyFormatting(heading, selection, action);
+      setHeading(result.newText);
+      setSelection(result.newSelection);
+    } else if (activeField === 'subheading') {
+      const result = applyFormatting(subheading, selection, action);
+      setSubheading(result.newText);
+      setSelection(result.newSelection);
+    } else if (activeField === 'author') {
+      const result = applyFormatting(author, selection, action);
+      setAuthor(result.newText);
+      setSelection(result.newSelection);
+    } else {
+      const result = applyFormatting(content, selection, action);
+      setContent(result.newText);
+      setSelection(result.newSelection);
+    }
+  };
 
   const customColorHex = hslToHex(customHue, 0.4, 0.55);
 
@@ -180,26 +219,48 @@ export function AddEditThoughtModal({
     ? 'New Experiment'
     : 'New Thought';
 
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <Animated.View className="flex-1 justify-end bg-black/40" style={overlayStyle}>
-          <Pressable
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            onPress={onClose}
-            aria-label="Dismiss modal backdrop"
-          />
-          <Animated.View
-          className="p-6 pb-12 shadow-2xl h-[85%]"
-          style={[
-            {
-              backgroundColor: palette.background,
-              borderTopLeftRadius: appearance.sheetRadius,
-              borderTopRightRadius: appearance.sheetRadius,
-            },
-            animatedStyle,
-          ]}
-        >
+    <View style={StyleSheet.absoluteFill} className="justify-end z-50">
+      <AnimatedPressable
+        style={[StyleSheet.absoluteFill, overlayStyle]}
+        className="bg-black/40"
+        onPress={dismiss}
+        aria-label="Dismiss modal backdrop"
+        role="button"
+      />
+      <Animated.View
+        className="p-6 pb-12 shadow-2xl h-[85%] overflow-hidden"
+        style={[
+          {
+            backgroundColor: isFrosted ? 'transparent' : palette.background,
+            borderTopLeftRadius: appearance.sheetRadius,
+            borderTopRightRadius: appearance.sheetRadius,
+          },
+          animatedStyle,
+        ]}
+      >
+        {isFrosted && (
+          <>
+            <BlurView
+              intensity={Math.min(100, appearance.chromeBlur + 45)}
+              tint={settings.darkMode ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor: settings.darkMode
+                    ? 'rgba(22, 22, 22, 0.88)'
+                    : 'rgba(255, 255, 255, 0.86)',
+                },
+              ]}
+              pointerEvents="none"
+            />
+          </>
+        )}
           <GestureDetector gesture={gesture}>
             <View className="-mx-6 -mt-6 px-6 pt-4 pb-3">
               <View className="items-center mb-4">
@@ -270,166 +331,256 @@ export function AddEditThoughtModal({
               </ScrollView>
             </View>
 
-            {/* ========================================================= */}
-            {/* 1. LEARNINGS: Heading + Subheading / Breakdown */}
-            {/* ========================================================= */}
-            {collection === 'learnings' && (
-              <View className="gap-3">
-                <View>
-                  <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                    Heading / Key Takeaway
-                  </Text>
-                  <TextInput
-                    className={`rounded-2xl p-4 text-base ${typeface.semibold} border`}
-                    style={{ backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
-                    placeholder="e.g. The Feynman Technique for deep mastery"
-                    placeholderTextColor={palette.textMuted}
-                    value={heading}
-                    onChangeText={setHeading}
-                  />
-                </View>
-                <View>
-                  <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                    Subheading / Reflection & Notes
-                  </Text>
-                  <TextInput
-                    className={`rounded-2xl p-4 text-base ${typeface.regular} border`}
-                    style={{ minHeight: 110, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
-                    multiline
-                    placeholder="Explain the concept simply as if teaching someone else, identify gaps, and refine..."
-                    placeholderTextColor={palette.textMuted}
-                    value={subheading}
-                    onChangeText={setSubheading}
-                  />
-                </View>
-              </View>
-            )}
+            {/* Tiptap Rich-Text Formatting Toolbar */}
+            <TiptapToolbar
+              onFormat={handleFormat}
+              isPreview={showPreview}
+              onTogglePreview={() => setShowPreview((prev) => !prev)}
+              accent={useCustomColor ? customColorHex : undefined}
+              className="mb-3"
+            />
 
-            {/* ========================================================= */}
-            {/* 2. BLESSINGS: Date + Heading + Subheading */}
-            {/* ========================================================= */}
-            {collection === 'blessings' && (
-              <View className="gap-3">
-                <View>
-                  <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                    Date of Blessing
+            {/* Live Rich Text Preview (When in Preview Mode) */}
+            {showPreview ? (
+              <View
+                className="p-5 rounded-2xl border mb-3"
+                style={{
+                  backgroundColor: useCustomColor
+                    ? withAlpha(customColorHex, 0.15)
+                    : settings.darkMode
+                    ? THEMES[theme].darkBackground
+                    : THEMES[theme].background,
+                  borderColor: palette.border,
+                }}
+              >
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className={`text-xs ${typeface.medium}`} style={{ color: palette.textMuted }}>
+                    Live Preview
                   </Text>
-                  <Pressable
-                    onPress={openDatePicker}
-                    className="flex-row items-center justify-between p-4 rounded-2xl border"
-                    style={{ backgroundColor: palette.surface, borderColor: palette.border }}
+                  <Text
+                    className={`text-[10px] ${typeface.semibold} uppercase px-2 py-0.5 rounded-full`}
+                    style={{ backgroundColor: 'rgba(122,150,122,0.18)', color: '#7A967A' }}
                   >
-                    <View className="flex-row items-center gap-2.5">
-                      <CalendarIcon size={16} color={palette.text} />
-                      <Text className={`text-sm ${typeface.semibold}`} style={{ color: palette.text }}>
-                        {format(new Date(eventDate), 'MMMM d, yyyy')}
-                      </Text>
-                    </View>
-                    <Text className={`text-xs ${typeface.medium}`} style={{ color: '#7A967A' }}>
-                      Change Date
-                    </Text>
-                  </Pressable>
-                </View>
-                <View>
-                  <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                    Gratitude Headline
+                    {COLLECTIONS.find((c) => c.id === collection)?.label}
                   </Text>
-                  <TextInput
-                    className={`rounded-2xl p-4 text-base ${typeface.semibold} border`}
-                    style={{ backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
-                    placeholder="e.g. A peaceful morning cup of coffee in the sun"
-                    placeholderTextColor={palette.textMuted}
-                    value={heading}
-                    onChangeText={setHeading}
-                  />
                 </View>
-                <View>
-                  <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                    Subheading / Why this was a blessing
+                {Boolean(heading) && (
+                  <RichText
+                    text={heading}
+                    className={`${typeface.semibold} text-base mb-1.5`}
+                    style={{ color: palette.text }}
+                    collectionId={collection}
+                  />
+                )}
+                {Boolean(subheading) && (
+                  <RichText
+                    text={subheading}
+                    className={`${typeface.regular} text-sm mb-2`}
+                    style={{ color: palette.textMuted }}
+                    collectionId={collection}
+                  />
+                )}
+                {Boolean(content) && (
+                  <RichText
+                    text={content}
+                    className={`${typeface.regular} text-base`}
+                    style={{ color: palette.text }}
+                    collectionId={collection}
+                    italicAll={collection === 'sayings'}
+                  />
+                )}
+                {Boolean(author) && (
+                  <Text
+                    className={`text-xs ${typeface.semibold} mt-2 text-right`}
+                    style={{ color: palette.textMuted }}
+                  >
+                    — {author}
                   </Text>
-                  <TextInput
-                    className={`rounded-2xl p-4 text-base ${typeface.regular} border`}
-                    style={{ minHeight: 90, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
-                    multiline
-                    placeholder="Gave me clarity, presence, and calm before starting a busy day..."
-                    placeholderTextColor={palette.textMuted}
-                    value={subheading}
-                    onChangeText={setSubheading}
-                  />
-                </View>
+                )}
               </View>
-            )}
+            ) : (
+              <>
+                {/* ========================================================= */}
+                {/* 1. LEARNINGS: Heading + Subheading / Breakdown */}
+                {/* ========================================================= */}
+                {collection === 'learnings' && (
+                  <View className="gap-3">
+                    <View>
+                      <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                        Heading / Key Takeaway
+                      </Text>
+                      <TextInput
+                        className={`rounded-2xl p-4 text-base ${typeface.semibold} border`}
+                        style={{ backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
+                        placeholder="e.g. The Feynman Technique for deep mastery"
+                        placeholderTextColor={palette.textMuted}
+                        value={heading}
+                        onChangeText={setHeading}
+                        onFocus={() => setActiveField('heading')}
+                        onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                      />
+                    </View>
+                    <View>
+                      <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                        Subheading / Reflection & Notes
+                      </Text>
+                      <TextInput
+                        className={`rounded-2xl p-4 text-base ${typeface.regular} border`}
+                        style={{ minHeight: 110, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
+                        multiline
+                        placeholder="Explain the concept simply as if teaching someone else, identify gaps, and refine..."
+                        placeholderTextColor={palette.textMuted}
+                        value={subheading}
+                        onChangeText={setSubheading}
+                        onFocus={() => setActiveField('subheading')}
+                        onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                      />
+                    </View>
+                  </View>
+                )}
 
-            {/* ========================================================= */}
-            {/* 3. SAYINGS: Quote + Said By / Author */}
-            {/* ========================================================= */}
-            {collection === 'sayings' && (
-              <View className="gap-3">
-                <View>
-                  <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                    Quote / Saying
-                  </Text>
+                {/* ========================================================= */}
+                {/* 2. BLESSINGS: Date + Heading + Subheading */}
+                {/* ========================================================= */}
+                {collection === 'blessings' && (
+                  <View className="gap-3">
+                    <View>
+                      <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                        Date of Blessing
+                      </Text>
+                      <Pressable
+                        onPress={openDatePicker}
+                        className="flex-row items-center justify-between p-4 rounded-2xl border"
+                        style={{ backgroundColor: palette.surface, borderColor: palette.border }}
+                      >
+                        <View className="flex-row items-center gap-2.5">
+                          <CalendarIcon size={16} color={palette.text} />
+                          <Text className={`text-sm ${typeface.semibold}`} style={{ color: palette.text }}>
+                            {format(new Date(eventDate), 'MMMM d, yyyy')}
+                          </Text>
+                        </View>
+                        <Text className={`text-xs ${typeface.medium}`} style={{ color: '#7A967A' }}>
+                          Change Date
+                        </Text>
+                      </Pressable>
+                    </View>
+                    <View>
+                      <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                        Gratitude Headline
+                      </Text>
+                      <TextInput
+                        className={`rounded-2xl p-4 text-base ${typeface.semibold} border`}
+                        style={{ backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
+                        placeholder="e.g. A peaceful morning cup of coffee in the sun"
+                        placeholderTextColor={palette.textMuted}
+                        value={heading}
+                        onChangeText={setHeading}
+                        onFocus={() => setActiveField('heading')}
+                        onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                      />
+                    </View>
+                    <View>
+                      <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                        Subheading / Why this was a blessing
+                      </Text>
+                      <TextInput
+                        className={`rounded-2xl p-4 text-base ${typeface.regular} border`}
+                        style={{ minHeight: 90, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
+                        multiline
+                        placeholder="Gave me clarity, presence, and calm before starting a busy day..."
+                        placeholderTextColor={palette.textMuted}
+                        value={subheading}
+                        onChangeText={setSubheading}
+                        onFocus={() => setActiveField('subheading')}
+                        onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {/* ========================================================= */}
+                {/* 3. SAYINGS: Quote + Said By / Author */}
+                {/* ========================================================= */}
+                {collection === 'sayings' && (
+                  <View className="gap-3">
+                    <View>
+                      <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                        Quote / Saying
+                      </Text>
+                      <TextInput
+                        className={`rounded-2xl p-4 text-base ${typeface.medium} border`}
+                        style={{ minHeight: 110, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border, fontStyle: 'italic' }}
+                        multiline
+                        placeholder="Waste no more time arguing what a good man should be. Be one."
+                        placeholderTextColor={palette.textMuted}
+                        value={content}
+                        onChangeText={setContent}
+                        onFocus={() => setActiveField('content')}
+                        onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                      />
+                    </View>
+                    <View>
+                      <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                        Said By / Author
+                      </Text>
+                      <TextInput
+                        className={`rounded-2xl p-4 text-sm ${typeface.semibold} border`}
+                        style={{ backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
+                        placeholder="e.g. Marcus Aurelius"
+                        placeholderTextColor={palette.textMuted}
+                        value={author}
+                        onChangeText={setAuthor}
+                        onFocus={() => setActiveField('author')}
+                        onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {/* ========================================================= */}
+                {/* 4. TRY DOING: Experiment / Action Prompt */}
+                {/* ========================================================= */}
+                {collection === 'tryDoing' && (
+                  <View>
+                    <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
+                      Experiment or Habit to Try
+                    </Text>
+                    <TextInput
+                      className={`rounded-2xl p-4 text-base ${typeface.regular} border`}
+                      style={{ minHeight: 110, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
+                      multiline
+                      placeholder="e.g. Go for a 15-minute phone-free morning walk in natural light"
+                      placeholderTextColor={palette.textMuted}
+                      value={content}
+                      onChangeText={setContent}
+                      onFocus={() => setActiveField('content')}
+                      onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
+                    />
+                  </View>
+                )}
+
+                {/* ========================================================= */}
+                {/* 5. REMEMBER: Standard Thought Text */}
+                {/* ========================================================= */}
+                {collection === 'remember' && (
                   <TextInput
-                    className={`rounded-2xl p-4 text-base ${typeface.medium} border`}
-                    style={{ minHeight: 110, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border, fontStyle: 'italic' }}
+                    className={`rounded-[24px] p-6 text-lg ${typeface.regular} border`}
+                    style={{ minHeight: 120, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
                     multiline
-                    placeholder="Waste no more time arguing what a good man should be. Be one."
+                    placeholder="What do you want to remember?"
                     placeholderTextColor={palette.textMuted}
                     value={content}
                     onChangeText={setContent}
+                    onFocus={() => setActiveField('content')}
+                    onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
                   />
-                </View>
-                <View>
-                  <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                    Said By / Author
-                  </Text>
-                  <TextInput
-                    className={`rounded-2xl p-4 text-sm ${typeface.semibold} border`}
-                    style={{ backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
-                    placeholder="e.g. Marcus Aurelius"
-                    placeholderTextColor={palette.textMuted}
-                    value={author}
-                    onChangeText={setAuthor}
-                  />
-                </View>
-              </View>
+                )}
+              </>
             )}
 
-            {/* ========================================================= */}
-            {/* 4. TRY DOING: Experiment / Action Prompt */}
-            {/* ========================================================= */}
-            {collection === 'tryDoing' && (
-              <View>
-                <Text className={`text-xs ${typeface.medium} mb-1 ml-1`} style={{ color: palette.textMuted }}>
-                  Experiment or Habit to Try
-                </Text>
-                <TextInput
-                  className={`rounded-2xl p-4 text-base ${typeface.regular} border`}
-                  style={{ minHeight: 110, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
-                  multiline
-                  placeholder="e.g. Go for a 15-minute phone-free morning walk in natural light"
-                  placeholderTextColor={palette.textMuted}
-                  value={content}
-                  onChangeText={setContent}
-                />
-              </View>
-            )}
-
-            {/* ========================================================= */}
-            {/* 5. REMEMBER: Standard Thought Text + Interval */}
-            {/* ========================================================= */}
+            {/* Repeat Interval (Only for Remember collection) */}
             {collection === 'remember' && (
               <>
-                <TextInput
-                  className={`rounded-[24px] p-6 text-lg ${typeface.regular} border`}
-                  style={{ minHeight: 120, textAlignVertical: 'top', backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }}
-                  multiline
-                  placeholder="What do you want to remember?"
-                  placeholderTextColor={palette.textMuted}
-                  value={content}
-                  onChangeText={setContent}
-                />
-
                 <Text className={`text-sm ${typeface.medium} mt-8 mb-4 ml-2`} style={{ color: palette.textMuted }}>
                   Repeat every
                 </Text>
@@ -497,62 +648,97 @@ export function AddEditThoughtModal({
             )}
 
             {/* Color Palette / Theme */}
-            <Text className={`text-sm ${typeface.medium} mt-8 mb-4 ml-2`} style={{ color: palette.textMuted }}>
-              Theme
-            </Text>
+            <View className="flex-row items-center justify-between mt-8 mb-3.5 ml-2 mr-2">
+              <Text className={`text-sm ${typeface.medium}`} style={{ color: palette.textMuted }}>
+                Theme
+              </Text>
+              {useCustomColor && (
+                <Pressable
+                  onPress={() => setUseCustomColor(false)}
+                  hitSlop={8}
+                  aria-label="Switch to preset themes"
+                  role="button"
+                >
+                  <Text className={`text-xs ${typeface.medium}`} style={{ color: '#7A967A' }}>
+                    Show Presets
+                  </Text>
+                </Pressable>
+              )}
+            </View>
 
-            <View className="flex-row flex-wrap gap-4 items-center mb-4">
-              {(Object.keys(THEMES) as ThemeId[]).map((themeKey) => {
-                const themeData = THEMES[themeKey];
-                const isSelected = !useCustomColor && theme === themeKey;
-                return (
+            <View className="mb-6 h-12 justify-center">
+              {!useCustomColor ? (
+                <Animated.View
+                  entering={FadeIn.duration(200)}
+                  exiting={FadeOut.duration(150)}
+                  layout={LinearTransition.springify()}
+                  className="flex-row items-center justify-between"
+                >
+                  {(Object.keys(THEMES) as ThemeId[]).map((themeKey) => {
+                    const themeData = THEMES[themeKey];
+                    const isSelected = !useCustomColor && theme === themeKey;
+                    return (
+                      <Pressable
+                        key={themeKey}
+                        onPress={() => {
+                          setUseCustomColor(false);
+                          setTheme(themeKey);
+                        }}
+                        aria-label={`${themeKey} theme`}
+                        role="button"
+                        className="w-12 h-12 rounded-full items-center justify-center border"
+                        style={{
+                          backgroundColor: settings.darkMode ? themeData.darkBackground : themeData.background,
+                          borderColor: isSelected ? themeData.accent : 'transparent',
+                          borderWidth: isSelected ? 2 : 1,
+                        }}
+                      >
+                        {isSelected && <Check size={18} color={themeData.accent} />}
+                      </Pressable>
+                    );
+                  })}
+
                   <Pressable
-                    key={themeKey}
-                    onPress={() => {
-                      setUseCustomColor(false);
-                      setTheme(themeKey);
-                    }}
-                    aria-label={`${themeKey} theme`}
+                    onPress={() => setUseCustomColor(true)}
+                    aria-label="Custom color picker"
                     role="button"
                     className="w-12 h-12 rounded-full items-center justify-center border"
                     style={{
-                      backgroundColor: settings.darkMode ? themeData.darkBackground : themeData.background,
-                      borderColor: isSelected ? themeData.accent : 'transparent',
-                      borderWidth: isSelected ? 2 : 1,
+                      backgroundColor: palette.surface,
+                      borderColor: palette.border,
+                      borderWidth: 1,
                     }}
                   >
-                    {isSelected && <Check size={18} color={themeData.accent} />}
+                    <Palette size={18} color={palette.textMuted} />
                   </Pressable>
-                );
-              })}
+                </Animated.View>
+              ) : (
+                <Animated.View
+                  entering={FadeInRight.duration(220)}
+                  exiting={FadeOutLeft.duration(180)}
+                  layout={LinearTransition.springify()}
+                  className="flex-row items-center gap-3 w-full"
+                >
+                  <Pressable
+                    onPress={() => setUseCustomColor(false)}
+                    aria-label="Back to preset themes"
+                    role="button"
+                    className="w-12 h-12 rounded-full items-center justify-center border"
+                    style={{
+                      backgroundColor: customColorHex,
+                      borderColor: palette.text,
+                      borderWidth: 2,
+                    }}
+                  >
+                    <Palette size={18} color="#FFFFFF" />
+                  </Pressable>
 
-              <Pressable
-                onPress={() => setUseCustomColor(true)}
-                aria-label="Custom color picker"
-                role="button"
-                className="w-12 h-12 rounded-full items-center justify-center border"
-                style={{
-                  backgroundColor: useCustomColor ? customColorHex : palette.surface,
-                  borderColor: useCustomColor ? palette.text : palette.border,
-                  borderWidth: useCustomColor ? 2 : 1,
-                }}
-              >
-                {useCustomColor ? (
-                  <Check size={18} color="#FFFFFF" />
-                ) : (
-                  <Palette size={18} color={palette.textMuted} />
-                )}
-              </Pressable>
+                  <View className="flex-1">
+                    <HueSlider hue={customHue} onChange={setCustomHue} />
+                  </View>
+                </Animated.View>
+              )}
             </View>
-
-            {useCustomColor && (
-              <View className="mb-6 p-4 rounded-2xl" style={{ backgroundColor: palette.surface }}>
-                <Text className={`text-xs ${typeface.medium} mb-3`} style={{ color: palette.textMuted }}>
-                  Slide to pick a color
-                </Text>
-                <HueSlider hue={customHue} onChange={setCustomHue} />
-              </View>
-            )}
 
             {/* Hide Behind Tap / Spoiler (Remember only) */}
             {collection === 'remember' && (
@@ -597,8 +783,6 @@ export function AddEditThoughtModal({
             </Pressable>
           </View>
         </Animated.View>
-      </Animated.View>
-      </GestureHandlerRootView>
-    </Modal>
+    </View>
   );
 }
